@@ -75,52 +75,6 @@ contract DaoGovernor is
   }
 
   // ==========================================================
-  //                      PUBLIC
-  // ==========================================================
-  
-  /// @notice Returns the delay between proposal creation and voting start
-  /// @return The voting delay in blocks
-  function votingDelay() public view override returns(uint256) {
-    return _votingDelay;
-  }
-
-  /// @notice Returns the duration of the voting period
-  /// @return The voting period in blocks
-  function votingPeriod() public view override returns(uint256) {
-    return _votingPeriod;
-  }
-
-  /// @notice Returns the current state of a proposal
-  /// @param proposalId The ID of the proposal
-  /// @return The current ProposalState
-  function state(uint256 proposalId)
-    public
-    view
-    override(Governor, GovernorTimelockControl)
-    returns(ProposalState)
-  {
-    return super.state(proposalId);
-  }
-
-  /// @notice Returns the number of votes required to create a proposal
-  /// @return The proposal threshold
-  function proposalThreshold() public view override returns(uint256) {
-    return _proposalThreshold;
-  }
-
-  /// @notice Checks if a proposal needs queuing before execution
-  /// @param proposalId The ID of the proposal
-  /// @return True if the proposal needs queuing
-  function proposalNeedsQueuing(uint256 proposalId)
-    public
-    view
-    override(Governor, GovernorTimelockControl)
-    returns(bool)
-  {
-    return super.proposalNeedsQueuing(proposalId);
-  } 
-
-  // ==========================================================
   //                      INTERNAL
   // ==========================================================
   
@@ -237,4 +191,50 @@ contract DaoGovernor is
   {
     return super._executor();
   }
+
+  // ==========================================================
+  //                      PUBLIC
+  // ==========================================================
+  
+  /// @notice Returns the delay between proposal creation and voting start
+  /// @return The voting delay in blocks
+  function votingDelay() public view override returns(uint256) {
+    return _votingDelay;
+  }
+
+  /// @notice Returns the duration of the voting period
+  /// @return The voting period in blocks
+  function votingPeriod() public view override returns(uint256) {
+    return _votingPeriod;
+  }
+
+  /// @notice Returns the current state of a proposal
+  /// @param proposalId The ID of the proposal
+  /// @return The current ProposalState
+  function state(uint256 proposalId)
+    public
+    view
+    override(Governor, GovernorTimelockControl)
+    returns(ProposalState)
+  {
+    return super.state(proposalId);
+  }
+
+  /// @notice Returns the number of votes required to create a proposal
+  /// @return The proposal threshold
+  function proposalThreshold() public view override returns(uint256) {
+    return _proposalThreshold;
+  }
+
+  /// @notice Checks if a proposal needs queuing before execution
+  /// @param proposalId The ID of the proposal
+  /// @return True if the proposal needs queuing
+  function proposalNeedsQueuing(uint256 proposalId)
+    public
+    view
+    override(Governor, GovernorTimelockControl)
+    returns(bool)
+  {
+    return super.proposalNeedsQueuing(proposalId);
+  } 
 }
