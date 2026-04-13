@@ -1,9 +1,9 @@
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.33;
 
 interface IProtocolCore {
-  function isAssetSupported(address asset) external view returns (bool);
-  function vaultCreationPaused() external view returns (bool);
-  function depositsPaused() external view returns (bool);
+  function isVaultAssetSupported(address asset) external view returns (bool);
+  function isVaultCreationPaused() external view returns (bool);
+  function isDepositsPaused() external view returns (bool);
+  function hasGenesisToken(address token) external view returns(bool);
 }
