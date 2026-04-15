@@ -1,6 +1,8 @@
 import { ArrowRight, Clock3, Landmark, Vote } from "lucide-react";
 import { useGovernanceModel } from "@/hooks/useGovernanceModel";
 import { Link } from "react-router-dom";
+import { HeroMetric, MetricCard } from "@/components/shared";
+import { ProposalStatus, LifecycleStep } from "./components";
 
 export default function GovernancePage() {
   const { config, metrics, proposals, user, capabilities } =
@@ -201,79 +203,6 @@ export default function GovernancePage() {
           </div>
         </div>
       </section>
-    </div>
-  );
-}
-
-function HeroMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-white/10 px-4 py-4 backdrop-blur">
-      <p className="text-sm text-blue-50">{label}</p>
-      <p className="mt-2 text-xl font-semibold text-white">{value}</p>
-    </div>
-  );
-}
-
-function MetricCard({
-  title,
-  value,
-  subtitle,
-  icon,
-}: {
-  title: string;
-  value: string;
-  subtitle: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="card">
-      <div className="card-content">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-text-secondary">{title}</p>
-          <div className="rounded-xl bg-blue-50 p-2 text-primary">{icon}</div>
-        </div>
-
-        <p className="mt-5 text-3xl font-semibold text-text-primary">{value}</p>
-        <p className="mt-2 text-sm leading-6 text-text-secondary">{subtitle}</p>
-      </div>
-    </div>
-  );
-}
-
-function ProposalStatus({ status }: { status: string }) {
-  const className =
-    status === "Active"
-      ? "badge-success"
-      : status === "Queued"
-        ? "badge-warning"
-        : status === "Executed"
-          ? "rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700"
-          : status === "Pending"
-            ? "rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700"
-            : "badge-danger";
-
-  return <span className={className}>{status}</span>;
-}
-
-function LifecycleStep({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="flex gap-4">
-      <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-primary">
-        •
-      </div>
-
-      <div>
-        <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
-        <p className="mt-1 text-sm leading-6 text-text-secondary">
-          {description}
-        </p>
-      </div>
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { Coins, Landmark, PieChart, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTreasuryModel } from "@/hooks/useTreasuryModel";
+import { HeroMetric, MetricCard, NoteRow } from "@/components/shared";
+import { CategoryBadge, VisibilityBadge, MiniSummaryCard } from "./components";
 
 export default function TreasuryPage() {
   const { assets, metrics, capabilities } = useTreasuryModel();
@@ -191,93 +193,6 @@ export default function TreasuryPage() {
           subtitle="Classification is derived from protocol support rules"
         />
       </section>
-    </div>
-  );
-}
-
-function HeroMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-white/10 px-4 py-4 backdrop-blur">
-      <p className="text-sm text-blue-50">{label}</p>
-      <p className="mt-2 text-xl font-semibold text-white">{value}</p>
-    </div>
-  );
-}
-
-function MetricCard({
-  title,
-  value,
-  subtitle,
-  icon,
-}: {
-  title: string;
-  value: string;
-  subtitle: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="card">
-      <div className="card-content">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-text-secondary">{title}</p>
-          <div className="rounded-xl bg-blue-50 p-2 text-primary">{icon}</div>
-        </div>
-
-        <p className="mt-5 text-3xl font-semibold text-text-primary">{value}</p>
-        <p className="mt-2 text-sm leading-6 text-text-secondary">{subtitle}</p>
-      </div>
-    </div>
-  );
-}
-
-function CategoryBadge({ category }: { category: string }) {
-  const className =
-    category === "DAO Asset"
-      ? "badge-success"
-      : "rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-700";
-
-  return <span className={className}>{category}</span>;
-}
-
-function VisibilityBadge({ value }: { value: string }) {
-  return (
-    <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-      {value}
-    </span>
-  );
-}
-
-function NoteRow({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-border px-4 py-4">
-      <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
-      <p className="mt-1 text-sm leading-6 text-text-secondary">
-        {description}
-      </p>
-    </div>
-  );
-}
-
-function MiniSummaryCard({
-  title,
-  value,
-  subtitle,
-}: {
-  title: string;
-  value: string;
-  subtitle: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-gray-50 px-5 py-5">
-      <p className="text-sm font-medium text-text-secondary">{title}</p>
-      <p className="mt-4 text-2xl font-semibold text-text-primary">{value}</p>
-      <p className="mt-2 text-sm leading-6 text-text-secondary">{subtitle}</p>
     </div>
   );
 }

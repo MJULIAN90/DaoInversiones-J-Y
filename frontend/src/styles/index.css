@@ -2,15 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
-/* =========================
-   Base global styles
-========================= */
-
-body {
-  font-family: 'Inter', sans-serif;
+@layer base {
+  body {
+    @apply font-sans antialiased;
+  }
 }
 
-/* Scroll más limpio (opcional pero recomendado) */
+@layer utilities {
+  .container-app {
+    @apply max-w-7xl mx-auto px-6;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface shadow-card rounded-xl border border-border;
+  }
+
+  .card-header {
+    @apply px-6 py-4 border-b border-border font-medium;
+  }
+
+  .card-content {
+    @apply p-6;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-hover transition-colors;
+  }
+
+  .btn-secondary {
+    @apply border border-border text-text-primary px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors;
+  }
+
+  .badge-success {
+    @apply text-xs px-3 py-1 rounded-full bg-green-100 text-green-700 font-medium;
+  }
+
+  .badge-warning {
+    @apply text-xs px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 font-medium;
+  }
+
+  .badge-danger {
+    @apply text-xs px-3 py-1 rounded-full bg-red-100 text-red-700 font-medium;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -22,44 +59,4 @@ body {
 
 ::-webkit-scrollbar-track {
   background: transparent;
-}
-
-/* =========================
-   Utility classes custom
-========================= */
-
-.container-app {
-  @apply max-w-7xl mx-auto px-6;
-}
-
-.card {
-  @apply bg-surface shadow-card rounded-xl border border-border;
-}
-
-.card-header {
-  @apply px-6 py-4 border-b border-border font-medium;
-}
-
-.card-content {
-  @apply p-6;
-}
-
-.btn-primary {
-  @apply bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-hover transition;
-}
-
-.btn-secondary {
-  @apply border border-border text-text-primary px-4 py-2 rounded-lg hover:bg-gray-50 transition;
-}
-
-.badge-success {
-  @apply text-sm px-2 py-1 rounded-full bg-green-100 text-green-600;
-}
-
-.badge-warning {
-  @apply text-sm px-2 py-1 rounded-full bg-yellow-100 text-yellow-700;
-}
-
-.badge-danger {
-  @apply text-sm px-2 py-1 rounded-full bg-red-100 text-red-600;
 }

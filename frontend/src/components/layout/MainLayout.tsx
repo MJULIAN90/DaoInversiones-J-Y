@@ -143,15 +143,6 @@ export function MainLayout() {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="hidden rounded-xl border border-border bg-surface px-4 py-2 md:block">
-                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-text-secondary">
-                    Wallet
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-text-primary">
-                    Not Connected
-                  </p>
-                </div>
-
                 <ConnectButton />
               </div>
             </div>

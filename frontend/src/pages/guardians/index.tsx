@@ -1,5 +1,56 @@
 import { ArrowRight, ShieldCheck, Users, Wallet } from "lucide-react";
 import { useGuardiansModel } from "@/hooks/useGuardiansModel";
+import { StatusMetric, LifecycleStep, EscrowMiniCard, OverviewCard } from "./components";
+
+function formatGuardianStatus(status: string) {
+  switch (status) {
+    case "inactive":
+      return "Not Applied";
+    case "pending":
+      return "Pending Approval";
+    case "active":
+      return "Active Guardian";
+    case "rejected":
+      return "Rejected";
+    case "resigned":
+      return "Resigned";
+    case "banned":
+      return "Banned";
+    default:
+      return "Unknown";
+  }
+}
+
+function getGuardianStatusBadge(status: string) {
+  switch (status) {
+    case "active":
+      return "badge-success";
+    case "pending":
+      return "badge-warning";
+    case "rejected":
+    case "banned":
+      return "badge-danger";
+    default:
+      return "rounded-full bg-white/15 px-4 py-2 text-sm font-medium text-white";
+  }
+}
+
+function getGuardianHelperText(status: string) {
+  switch (status) {
+    case "pending":
+      return "Your application is currently under governance review.";
+    case "active":
+      return "You already have access to guardian operations.";
+    case "rejected":
+      return "Your previous application was not approved.";
+    case "resigned":
+      return "You are currently not active after resignation.";
+    case "banned":
+      return "Guardian access has been permanently restricted.";
+    default:
+      return "Connect your wallet to view your guardian eligibility and application status.";
+  }
+}
 
 export default function GuardiansPage() {
   const { state, metrics, capabilities } = useGuardiansModel();
@@ -182,144 +233,4 @@ export default function GuardiansPage() {
       </section>
     </div>
   );
-}
-
-function StatusMetric({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-gray-50 px-4 py-4">
-      <p className="text-sm text-text-secondary">{label}</p>
-      <p className="mt-2 text-lg font-semibold text-text-primary">{value}</p>
-    </div>
-  );
-}
-
-function LifecycleStep({
-  title,
-  description,
-  tone,
-}: {
-  title: string;
-  description: string;
-  tone: "success" | "warning" | "danger" | "neutral";
-}) {
-  const dotClass =
-    tone === "success"
-      ? "bg-green-100 text-green-700"
-      : tone === "warning"
-        ? "bg-yellow-100 text-yellow-700"
-        : tone === "danger"
-          ? "bg-red-100 text-red-700"
-          : "bg-gray-100 text-gray-700";
-
-  return (
-    <div className="flex gap-4">
-      <div
-        className={`mt-1 flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${dotClass}`}
-      >
-        •
-      </div>
-
-      <div>
-        <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
-        <p className="mt-1 text-sm leading-6 text-text-secondary">{description}</p>
-      </div>
-    </div>
-  );
-}
-
-function EscrowMiniCard({
-  title,
-  description,
-  icon,
-}: {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border border-border px-4 py-4">
-      <div className="w-fit rounded-xl bg-blue-50 p-2 text-primary">{icon}</div>
-      <h3 className="mt-4 text-sm font-semibold text-text-primary">{title}</h3>
-      <p className="mt-1 text-sm leading-6 text-text-secondary">{description}</p>
-    </div>
-  );
-}
-
-function OverviewCard({
-  title,
-  value,
-  subtitle,
-  icon,
-}: {
-  title: string;
-  value: string;
-  subtitle: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-gray-50 px-5 py-5">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-text-secondary">{title}</p>
-        <div className="rounded-xl bg-blue-50 p-2 text-primary">{icon}</div>
-      </div>
-      <p className="mt-4 text-2xl font-semibold text-text-primary">{value}</p>
-      <p className="mt-2 text-sm leading-6 text-text-secondary">{subtitle}</p>
-    </div>
-  );
-}
-
-function formatGuardianStatus(status: string) {
-  switch (status) {
-    case "inactive":
-      return "Not Applied";
-    case "pending":
-      return "Pending Approval";
-    case "active":
-      return "Active Guardian";
-    case "rejected":
-      return "Rejected";
-    case "resigned":
-      return "Resigned";
-    case "banned":
-      return "Banned";
-    default:
-      return "Unknown";
-  }
-}
-
-function getGuardianStatusBadge(status: string) {
-  switch (status) {
-    case "active":
-      return "badge-success";
-    case "pending":
-      return "badge-warning";
-    case "rejected":
-    case "banned":
-      return "badge-danger";
-    default:
-      return "rounded-full bg-white/15 px-4 py-2 text-sm font-medium text-white";
-  }
-}
-
-function getGuardianHelperText(status: string) {
-  switch (status) {
-    case "pending":
-      return "Your application is currently under governance review.";
-    case "active":
-      return "You already have access to guardian operations.";
-    case "rejected":
-      return "Your previous application was not approved.";
-    case "resigned":
-      return "You are currently not active after resignation.";
-    case "banned":
-      return "Guardian access has been permanently restricted.";
-    default:
-      return "Connect your wallet to view your guardian eligibility and application status.";
-  }
 }

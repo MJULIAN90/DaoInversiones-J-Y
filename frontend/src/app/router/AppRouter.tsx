@@ -11,12 +11,9 @@ import TreasuryPage from "@/pages/treasury";
 import OperationsPage from "@/pages/operations";
 import RiskPage from "@/pages/risk";
 import AdminPage from "@/pages/admin";
-import VaultDetailPage from "@/pages/vaults/VaultDetailPage";
-import CreateProposalPage from "@/pages/governance/CreateProposalPage";
-import ProposalDetailPage from "@/pages/governance/ProposalDetailPage";
-import TreasuryOperationsPage from "@/pages/treasury/OperationsPage";
-import GuardianToolsPage from "@/pages/vaults/GuardianToolsPage";
-import MyPositionsPage from "@/pages/vaults/MyPositionsPage";
+import { VaultDetailPage, GuardianToolsPage, MyPositionsPage } from "@/pages/vaults/components";
+import { CreateProposalPage, ProposalDetailPage } from "@/pages/governance/components";
+import { OperationsPage as TreasuryOperationsPage } from "@/pages/treasury/components";
 
 export function AppRouter() {
   return (

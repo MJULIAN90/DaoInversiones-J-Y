@@ -1,6 +1,20 @@
-import { ArrowRight, Building2, Coins, Landmark, Users } from "lucide-react";
+import { Building2, Coins, Landmark, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useDashboardModel } from "@/hooks/useDashboardModel";
+import { MetricCard, QuickAction } from "@/components/shared";
+import { StatusRow, OverviewRow, ActivityItem, MiniStat, QuickActionButton } from "./components";
+
+function formatBondingStatus(value: "active" | "finalized") {
+  return value === "active" ? "Active" : "Finalized";
+}
+
+function formatEnabledStatus(value: "enabled" | "paused") {
+  return value === "enabled" ? "Enabled" : "Paused";
+}
+
+function formatExecutionStatus(value: "monitoring" | "paused") {
+  return value === "monitoring" ? "Monitoring" : "Paused";
+}
 
 export default function DashboardPage() {
   const { metrics, status, activity, capabilities } = useDashboardModel();
@@ -231,189 +245,3 @@ export default function DashboardPage() {
   );
 }
 
-function MetricCard({
-  title,
-  value,
-  subtitle,
-  icon,
-}: {
-  title: string;
-  value: string;
-  subtitle: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="card">
-      <div className="card-content">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-text-secondary">{title}</p>
-          <div className="rounded-xl bg-blue-50 p-2 text-primary">{icon}</div>
-        </div>
-
-        <p className="mt-5 text-3xl font-semibold text-text-primary">{value}</p>
-        <p className="mt-2 text-sm leading-6 text-text-secondary">{subtitle}</p>
-      </div>
-    </div>
-  );
-}
-
-function StatusRow({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: "success" | "warning" | "danger" | "neutral";
-}) {
-  return (
-    <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3">
-      <p className="text-sm text-blue-50">{label}</p>
-      <span
-        className={[
-          "rounded-full px-3 py-1 text-xs font-medium",
-          tone === "success" && "bg-green-100 text-green-700",
-          tone === "warning" && "bg-yellow-100 text-yellow-700",
-          tone === "danger" && "bg-red-100 text-red-700",
-          tone === "neutral" && "bg-white/20 text-white",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function OverviewRow({
-  title,
-  description,
-  status,
-  tone,
-}: {
-  title: string;
-  description: string;
-  status: string;
-  tone: "success" | "warning" | "danger" | "neutral";
-}) {
-  return (
-    <div className="flex items-start justify-between gap-4 rounded-2xl border border-border px-4 py-4">
-      <div>
-        <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
-        <p className="mt-1 text-sm leading-6 text-text-secondary">
-          {description}
-        </p>
-      </div>
-
-      <span
-        className={[
-          "whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium",
-          tone === "success" && "bg-green-100 text-green-700",
-          tone === "warning" && "bg-yellow-100 text-yellow-700",
-          tone === "danger" && "bg-red-100 text-red-700",
-          tone === "neutral" && "bg-gray-100 text-gray-700",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-      >
-        {status}
-      </span>
-    </div>
-  );
-}
-
-function ActivityItem({
-  title,
-  subtitle,
-}: {
-  title: string;
-  subtitle: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-border px-4 py-4">
-      <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
-      <p className="mt-1 text-sm leading-6 text-text-secondary">{subtitle}</p>
-    </div>
-  );
-}
-
-function QuickAction({
-  title,
-  description,
-  to,
-}: {
-  title: string;
-  description: string;
-  to: string;
-}) {
-  return (
-    // TODO: REVISAR SI SI ES ASI?
-
-    <Link
-      to={to}
-      className="flex items-center justify-between rounded-2xl border border-border px-4 py-4 text-left transition hover:border-primary/30 hover:bg-blue-50/40"
-    >
-      <div>
-        <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
-        <p className="mt-1 text-sm leading-6 text-text-secondary">
-          {description}
-        </p>
-      </div>
-      <div className="rounded-xl bg-blue-50 p-2 text-primary">
-        <ArrowRight className="h-4 w-4" />
-      </div>
-    </Link>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-border bg-gray-50 px-4 py-4">
-      <p className="text-sm text-text-secondary">{label}</p>
-      <p className="mt-2 text-xl font-semibold text-text-primary">{value}</p>
-    </div>
-  );
-}
-
-function QuickActionButton({
-  label,
-  disabled,
-  to,
-}: {
-  label: string;
-  disabled: boolean;
-  to: string;
-}) {
-  if (disabled) {
-    return (
-      <button
-        disabled
-        className="cursor-not-allowed rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-medium text-white/60"
-      >
-        {label}
-      </button>
-    );
-  }
-
-  return (
-    <Link
-      to={to}
-      className="rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/20"
-    >
-      {label}
-    </Link>
-  );
-}
-
-function formatBondingStatus(value: "active" | "finalized") {
-  return value === "active" ? "Active" : "Finalized";
-}
-
-function formatEnabledStatus(value: "enabled" | "paused") {
-  return value === "enabled" ? "Enabled" : "Paused";
-}
-
-function formatExecutionStatus(value: "monitoring" | "paused") {
-  return value === "monitoring" ? "Monitoring" : "Paused";
-}

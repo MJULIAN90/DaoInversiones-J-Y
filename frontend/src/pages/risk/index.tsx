@@ -6,6 +6,12 @@ import {
   Waves,
 } from "lucide-react";
 import { useRiskModel } from "@/hooks/useRiskModel";
+import { HeroMetric, MetricCard } from "@/components/shared";
+import { HealthBadge, ConfigField } from "./components";
+
+function formatExecutionStatus(value: "monitoring" | "paused") {
+  return value === "monitoring" ? "Monitoring" : "Paused";
+}
 
 export default function RiskPage() {
   const { metrics, assets, capabilities } = useRiskModel();
@@ -224,79 +230,4 @@ export default function RiskPage() {
       </section>
     </div>
   );
-}
-
-function HeroMetric({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-2xl bg-white/10 px-4 py-4 backdrop-blur">
-      <p className="text-sm text-blue-50">{label}</p>
-      <p className="mt-2 text-xl font-semibold text-white">{value}</p>
-    </div>
-  );
-}
-
-function MetricCard({
-  title,
-  value,
-  subtitle,
-  icon,
-}: {
-  title: string;
-  value: string;
-  subtitle: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="card">
-      <div className="card-content">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-text-secondary">{title}</p>
-          <div className="rounded-xl bg-blue-50 p-2 text-primary">{icon}</div>
-        </div>
-
-        <p className="mt-5 text-3xl font-semibold text-text-primary">{value}</p>
-        <p className="mt-2 text-sm leading-6 text-text-secondary">{subtitle}</p>
-      </div>
-    </div>
-  );
-}
-
-function HealthBadge({ value }: { value: string }) {
-  const className =
-    value === "Healthy"
-      ? "badge-success"
-      : value === "Monitoring"
-        ? "badge-warning"
-        : "badge-danger";
-
-  return <span className={className}>{value}</span>;
-}
-
-function ConfigField({
-  label,
-  placeholder,
-}: {
-  label: string;
-  placeholder: string;
-}) {
-  return (
-    <div>
-      <label className="text-sm text-text-secondary">{label}</label>
-      <input
-        type="text"
-        placeholder={placeholder}
-        className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
-      />
-    </div>
-  );
-}
-
-function formatExecutionStatus(value: "monitoring" | "paused") {
-  return value === "monitoring" ? "Monitoring" : "Paused";
 }

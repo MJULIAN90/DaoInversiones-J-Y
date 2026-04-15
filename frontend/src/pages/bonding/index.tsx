@@ -1,4 +1,5 @@
 import { useBondingModel } from "@/hooks/useBondingModel";
+import { Metric, Bullet } from "./components";
 
 export default function BondingPage() {
   const {
@@ -144,30 +145,6 @@ export default function BondingPage() {
           <Metric label="Total Purchases" value={String(position.totalPurchases)} />
         </div>
       </section>
-    </div>
-  );
-}
-
-function Metric({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-gray-50 px-4 py-4">
-      <p className="text-sm text-text-secondary">{label}</p>
-      <p className="mt-2 text-lg font-semibold text-text-primary">{value}</p>
-    </div>
-  );
-}
-
-function Bullet({ text }: { text: string }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="mt-2 h-2 w-2 rounded-full bg-primary" />
-      <p className="text-sm text-text-secondary">{text}</p>
     </div>
   );
 }
