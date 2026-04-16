@@ -1,4 +1,3 @@
-
 .PHONY: install
 
 i_foundry:; forge init --force
@@ -33,3 +32,8 @@ coverage:
 	forge coverage --report lcov
 	genhtml lcov.info --output-directory coverage
 	xdg-open coverage/index.html
+
+.PHONY: deploy
+
+s_deployLocal:; forge clean && forge build && forge script script/deploy/DeployInvestmentDao.s.sol:DeployInvestmentDao --rpc-url http://127.0.0.1:8545 --broadcast -vvvvv
+

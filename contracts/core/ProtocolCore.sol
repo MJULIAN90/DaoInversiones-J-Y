@@ -44,6 +44,7 @@ contract ProtocolCore is
     _grantRole(DEFAULT_ADMIN_ROLE, adminTimelock);
     _grantRole(MANAGER_ROLE, adminTimelock);
     _grantRole(EMERGENCY_ROLE, emergencyOperator);
+
     _setSupportedGenesisTokens(allowedGenesisTokens);
   }
 
@@ -95,8 +96,8 @@ contract ProtocolCore is
   function _setSupportedGenesisTokens(address[] memory allowedGenesisTokens) internal {
     uint256 length = allowedGenesisTokens.length;
 
-    for (uint256 i = 0; i < length; i++) {
-      if (allowedGenesisTokens[i] == address(0)) revert CommonErrors.ZeroAddress();
+    for(uint256 i = 0; i < length; i++) {
+      if(allowedGenesisTokens[i] == address(0)) revert CommonErrors.ZeroAddress();
       _supportedGenesisTokens.add(allowedGenesisTokens[i]);
     }
   }
