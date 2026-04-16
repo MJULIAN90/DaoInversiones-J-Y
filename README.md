@@ -1,66 +1,126 @@
-## Foundry
+# 🏛 Protocol Frontend --- Governance, Vaults & Treasury System
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+## 🌐 Overview
 
-Foundry consists of:
+This project is a **modular frontend architecture** designed for a DeFi
+protocol that integrates:
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+-   Governance (DAO proposals & voting)
+-   Vault infrastructure (ERC4626-like)
+-   Treasury management
+-   Guardian-based execution layer
+-   Risk monitoring and operational controls
 
-## Documentation
+The system is designed to be: - **Web3-agnostic at UI level** -
+**Hook-driven for data and logic** - **Ready for wagmi / viem
+integration** - **Scalable with The Graph / indexing layers**
 
-https://book.getfoundry.sh/
+------------------------------------------------------------------------
 
-## Usage
+## 🧠 Architecture Principles
 
-### Build
+### 1. Separation of Concerns
 
-```shell
-$ forge build
+  Layer        Responsibility
+  ------------ -------------------------------
+  UI (Pages)   Rendering only
+  Hooks        Data + logic
+  Contracts    External integration (future)
+
+> UI never interacts directly with Web3.
+
+------------------------------------------------------------------------
+
+### 2. Capability-Based Access Control
+
+Instead of role checks:
+
+``` ts
+// ❌ Avoid
+if (role === "admin")
+
+// ✅ Use
+if (capabilities.canCreateProposal)
 ```
 
-### Test
+------------------------------------------------------------------------
 
-```shell
-$ forge test
-```
+### 3. Hook-Centric Design
 
-### Format
+Each view is powered by a hook.
 
-```shell
-$ forge fmt
-```
+------------------------------------------------------------------------
 
-### Gas Snapshots
+## 📁 Project Structure
 
-```shell
-$ forge snapshot
-```
+src/ ├── app/ ├── pages/ ├── hooks/ ├── components/ └── styles/
 
-### Anvil
+------------------------------------------------------------------------
 
-```shell
-$ anvil
-```
+## 🧩 Core Modules
 
-### Deploy
+### Governance
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
+-   Proposal creation
+-   Voting
+-   Execution
 
-### Cast
+### Vaults
 
-```shell
-$ cast <subcommand>
-```
+-   Deposit / Withdraw
+-   Strategy execution
 
-### Help
+### Treasury
 
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+-   Asset management
+-   Controlled withdrawals
+
+### Guardians
+
+-   Vault deployment
+-   Execution control
+
+### Risk
+
+-   Pause system
+-   Asset validation
+
+### Admin
+
+-   Diagnostics
+-   Contract registry
+
+------------------------------------------------------------------------
+
+## 🔗 Routing Map
+
+/dashboard /governance /governance/create /governance/:proposalId
+/vaults /vaults/:vaultAddress /vaults/positions /vaults/guardian-tools
+/treasury /treasury/operations /operations /risk /admin
+
+------------------------------------------------------------------------
+
+## 🎨 UI Design
+
+-   TailwindCSS
+-   Enterprise light theme
+
+------------------------------------------------------------------------
+
+## 🔌 Integration Plan
+
+-   wagmi
+-   viem
+-   RainbowKit
+-   The Graph
+
+------------------------------------------------------------------------
+
+## 🇪🇸 Versión en Español
+
+Frontend modular para protocolo DeFi con gobernanza, vaults, tesorería y
+capa de riesgo.
+
+-   Arquitectura desacoplada
+-   Basado en hooks
+-   Escalable y listo para producción

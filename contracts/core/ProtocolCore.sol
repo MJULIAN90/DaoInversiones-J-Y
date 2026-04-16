@@ -39,12 +39,12 @@ contract ProtocolCore is
       emergencyOperator == address(0)
     )
       revert CommonErrors.ZeroAddress();
-    setSupportedGenesisTokens(allowedGenesisTokens);
     __AccessControl_init();
 
     _grantRole(DEFAULT_ADMIN_ROLE, adminTimelock);
     _grantRole(MANAGER_ROLE, adminTimelock);
     _grantRole(EMERGENCY_ROLE, emergencyOperator);
+    _setSupportedGenesisTokens(allowedGenesisTokens);
   }
 
   function setSupportedVaultAsset(
@@ -89,6 +89,10 @@ contract ProtocolCore is
   }
 
   function setSupportedGenesisTokens(address[] memory allowedGenesisTokens) public onlyRole(MANAGER_ROLE) {
+    _setSupportedGenesisTokens(allowedGenesisTokens);
+  }
+
+  function _setSupportedGenesisTokens(address[] memory allowedGenesisTokens) internal {
     uint256 length = allowedGenesisTokens.length;
 
     for (uint256 i = 0; i < length; i++) {
