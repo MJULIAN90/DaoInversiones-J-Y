@@ -35,5 +35,9 @@ coverage:
 
 .PHONY: deploy
 
-s_deployLocal:; forge clean && forge build && forge script script/deploy/DeployInvestmentDao.s.sol:DeployInvestmentDao --rpc-url http://127.0.0.1:8545 --broadcast -vvvvv
-
+s_deployLocal:
+	forge clean
+	forge build
+	forge script script/deploy/DeployInvestmentDao.s.sol:DeployInvestmentDao --rpc-url http://127.0.0.1:8545 --broadcast -vvvvv
+	pnpm install
+	pnpm run generate:contracts-sdk
