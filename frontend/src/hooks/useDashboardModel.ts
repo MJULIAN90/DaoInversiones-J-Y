@@ -1,54 +1,62 @@
+import { useMemo } from "react";
+import { ERC20_DEFAULT, formatTokenAmount, getNetworkName } from "@/utils";
+import {
+  dashboardProtocolReadDefinitions,
+  type DashboardProtocolReadContext,
+} from "@/hooks/definitions/protocolReads";
+import type {
+  ActivityItem,
+  DashboardMetrics,
+  DashboardModel,
+  ProtocolStatus,
+} from "@/types/models/dashboard";
 import { useProtocolCapabilities } from "./useProtocolCapabilities";
-
-export type DashboardMetrics = {
-  totalVaults: number;
-  treasuryValue: string;
-  proposalThreshold: string;
-  guardianCount: number;
-};
-
-export type ProtocolStatus = {
-  network: string;
-  bonding: "active" | "finalized";
-  vaultCreation: "enabled" | "paused";
-  deposits: "enabled" | "paused";
-  execution: "monitoring" | "paused";
-};
-
-export type ActivityItem = {
-  id: string;
-  title: string;
-  description: string;
-};
-
-export type DashboardModel = {
-  metrics: DashboardMetrics;
-  status: ProtocolStatus;
-  activity: ActivityItem[];
-  capabilities: ReturnType<typeof useProtocolCapabilities>;
-};
+import { useProtocolReads } from "./useProtocolReads";
+import { useChainId } from "wagmi";
 
 export function useDashboardModel(): DashboardModel {
+  const chainId = useChainId();
   const capabilities = useProtocolCapabilities();
-
-  // ===== MOCK DATA =====
-  // TODO: reemplazar TODO esto por datos reales desde contratos / indexador
+  const dashboardReadContext = useMemo<DashboardProtocolReadContext>(
+    () => ({
+      treasuryToken: ERC20_DEFAULT,
+    }),
+    [],
+  );
+  const dashboardReads = useProtocolReads(
+    dashboardProtocolReadDefinitions,
+    dashboardReadContext,
+  );
 
   const metrics: DashboardMetrics = {
-    totalVaults: 62,
-    treasuryValue: "$17.7M",
-    proposalThreshold: "4%",
-    guardianCount: 14,
+    totalVaults:
+      typeof dashboardReads.totalVaults === "bigint"
+        ? Number(dashboardReads.totalVaults)
+        : 0,
+    treasuryValue:
+      typeof dashboardReads.treasuryERC20Balance === "bigint"
+        ? formatTokenAmount(dashboardReads.treasuryERC20Balance, "USDT")
+        : "0.000000 USDT",
+    proposalThreshold:
+      typeof dashboardReads.proposalThreshold === "bigint"
+        ? (Number(dashboardReads.proposalThreshold) / 10 ** 18).toString()
+        : "0",
+    guardianCount: dashboardReads.guardianCount
+      ? Number(dashboardReads.guardianCount)
+      : 0,
   };
 
   const status: ProtocolStatus = {
-    network: "Ethereum Mainnet",
-    bonding: "active",
-    vaultCreation: "enabled",
-    deposits: "enabled",
-    execution: "monitoring",
+    network: getNetworkName(chainId),
+    bonding: dashboardReads.isBondingFinalized ? "finalized" : "active",
+    vaultCreation: dashboardReads.isVaultCreationPaused ? "paused" : "enabled",
+    deposits: dashboardReads.isDepositsPaused ? "paused" : "enabled",
+    execution: dashboardReads.isExecutionPaused ? "paused" : "monitoring",
   };
 
+  // TODO:
+  // ===== FUTURO =====
+  // activity -> eventos (subgraph idealmente)
   const activity: ActivityItem[] = [
     {
       id: "1",
@@ -66,20 +74,6 @@ export function useDashboardModel(): DashboardModel {
       description: "Balances refreshed across tracked assets.",
     },
   ];
-
-  // ===== FUTURO =====
-  // TODO:
-  // metrics.totalVaults -> VaultRegistry.totalVaults()
-  // treasuryValue -> Treasury.nativeBalance + erc20Balance aggregation
-  // proposalThreshold -> DaoGovernor.proposalThreshold()
-  // guardianCount -> GuardianAdministrator (si indexas)
-  //
-  // status.bonding -> GenesisBonding.isFinalized()
-  // status.vaultCreation -> ProtocolCore.isVaultCreationPaused()
-  // status.deposits -> ProtocolCore.isDepositsPaused()
-  // status.execution -> RiskManager.executionPaused
-  //
-  // activity -> eventos (subgraph idealmente)
 
   return {
     metrics,

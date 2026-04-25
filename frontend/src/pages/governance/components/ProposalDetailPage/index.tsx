@@ -1,8 +1,14 @@
 import { useParams } from "react-router-dom";
 import { Clock3, Vote } from "lucide-react";
 import { useProposalDetailModel } from "@/hooks/useProposalDetailModel";
-import { HeroMetric, MetricCard, InfoRow } from "@/components/shared";
+import {
+  CopyValueButton,
+  HeroMetric,
+  MetricCard,
+  InfoRow,
+} from "@/components/shared";
 import { TimelineRow } from "../";
+import { truncateMiddle } from "@/utils";
 
 export default function ProposalDetailPage() {
   const { proposalId } = useParams();
@@ -25,7 +31,22 @@ export default function ProposalDetailPage() {
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <HeroMetric label="Proposal ID" value={proposal.id} />
+          <div className="rounded-2xl bg-white/10 px-4 py-4 backdrop-blur">
+            <p className="text-sm text-blue-50">Proposal ID</p>
+            <p
+              className="mt-2 break-all text-lg font-semibold text-white"
+              title={proposal.id}
+            >
+              {truncateMiddle(proposal.id, 8, 6)}
+            </p>
+            <div className="mt-3">
+              <CopyValueButton
+                value={proposal.id}
+                label="Copy ID"
+                className="border-white/30 bg-white/10 text-white hover:bg-white/20"
+              />
+            </div>
+          </div>
           <HeroMetric label="Status" value={proposal.status} />
           <HeroMetric label="Proposer" value={proposal.proposer} />
           <HeroMetric label="Execution ETA" value={proposal.executionEta} />

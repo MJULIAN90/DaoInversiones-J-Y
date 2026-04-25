@@ -1,3 +1,4 @@
+
 .PHONY: install
 
 i_foundry:; forge init --force
@@ -39,5 +40,13 @@ s_deployLocal:
 	forge clean
 	forge build
 	forge script script/deploy/DeployInvestmentDao.s.sol:DeployInvestmentDao --rpc-url http://127.0.0.1:8545 --broadcast -vvvvv
-	pnpm install
 	pnpm run generate:contracts-sdk
+
+.PHONY: s_seedLocal
+
+s_seedLocal:
+	forge script script/local/SeedLocal.s.sol:SeedLocal --rpc-url http://127.0.0.1:8545 --broadcast --slow --skip-simulation -vvvv
+
+.PHONY: s_bootstrapLocal
+
+d: s_deployLocal s_seedLocal

@@ -1,17 +1,38 @@
 export interface ProtocolCapabilities {
-  canAccessAdminConsole: boolean;
+  canBuyGovernanceTokens: boolean;
+  canOpenProposalComposer: boolean;
   canCreateProposal: boolean;
-  canVoteOnProposal: boolean;
-  canExecuteProposal: boolean;
-  canManageTreasury: boolean;
-  canOpenTreasuryOperations: boolean;
-  canCreateVault: boolean;
-  canExecuteStrategy: boolean;
   canApplyAsGuardian: boolean;
   canAccessGuardianOperations: boolean;
+  canCreateVault: boolean;
+  canExecuteStrategy: boolean;
+  canOpenTreasuryOperations: boolean;
+  canPauseVaultCreation: boolean;
+  canResumeVaultCreation: boolean;
+  canPauseVaultDeposits: boolean;
+  canResumeVaultDeposits: boolean;
   canPauseRiskExecution: boolean;
   canResumeRiskExecution: boolean;
-  canBuyGovernanceTokens: boolean;
+  canAccessAdminConsole: boolean;
+}
+
+export interface ProtocolCapabilityContext {
+  isWalletConnected: boolean;
+  hasProposalThreshold: boolean;
+  guardianStatus:
+    | "inactive"
+    | "pending"
+    | "active"
+    | "rejected"
+    | "resigned"
+    | "banned";
+  isVaultCreationPaused: boolean;
+  isDepositsPaused: boolean;
+  isExecutionPaused: boolean;
+  isManagerOperator: boolean;
+  isEmergencyOperator: boolean;
+  isTreasuryOperator: boolean;
+  isAdminOperator: boolean;
 }
 
 export interface WalletState {

@@ -8,13 +8,14 @@ export default function BondingPage() {
     setSelectedAsset,
     amount,
     setAmount,
+    amountError,
+    canBuy,
+    isSubmitting,
     estimatedTokens,
     state,
     position,
-    capabilities,
+    createTransaction,
   } = useBondingModel();
-
-  const bondingStatus = state.isFinalized ? "Finalized" : "Active";
 
   return (
     <div className="space-y-8">
@@ -38,7 +39,7 @@ export default function BondingPage() {
               state.isFinalized ? "badge-warning" : "badge-success"
             }
           >
-            {bondingStatus}
+            {state.bondingStatus}
           </span>
         </div>
       </section>
@@ -59,11 +60,11 @@ export default function BondingPage() {
                   const asset = assets.find(
                     (item) => item.address === e.target.value
                   );
-
                   if (asset) {
                     setSelectedAsset(asset);
                   }
                 }}
+                disabled={isSubmitting}
                 className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
               >
                 {assets.map((asset) => (
@@ -81,8 +82,12 @@ export default function BondingPage() {
                 placeholder="Enter amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                disabled={isSubmitting}
                 className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
               />
+              {amountError ? (
+                <p className="mt-2 text-sm text-danger">{amountError}</p>
+              ) : null}
             </div>
 
             <div className="rounded-2xl bg-gray-50 px-4 py-4">
@@ -96,9 +101,10 @@ export default function BondingPage() {
 
             <button
               className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={!capabilities.canBuyGovernanceTokens || state.isFinalized}
+              disabled={!canBuy}
+              onClick={createTransaction}
             >
-              Buy Governance Tokens
+              {isSubmitting ? "Processing Transaction..." : "Buy Governance Tokens"}
             </button>
 
             <p className="text-sm leading-6 text-text-secondary">
@@ -106,10 +112,6 @@ export default function BondingPage() {
                 ? "Bonding has been finalized. No further governance token purchases are allowed."
                 : "Bonding is active. Supported assets may be exchanged for governance tokens at the current rate."}
             </p>
-
-            {/* TODO: conectar GenesisBonding.buy(selectedAsset.address, amount) */}
-            {/* TODO: bloquear por wallet no conectada */}
-            {/* TODO: manejar loading / success / error states del write */}
           </div>
         </div>
 
@@ -117,9 +119,12 @@ export default function BondingPage() {
           <div className="card-header">Bonding Metrics</div>
 
           <div className="card-content grid gap-4 sm:grid-cols-2">
-            <Metric label="Total Distributed" value={state.totalDistributed} />
+            <Metric
+              label="Total Distributed"
+              value={state.totalDistributed}
+            />
             <Metric label="Exchange Rate" value={`1 = ${state.rate} GOV`} />
-            <Metric label="Program Status" value={bondingStatus} />
+            <Metric label="Program Status" value={state.bondingStatus} />
             <Metric label="Supported Assets" value={`${assets.length}`} />
           </div>
         </div>
@@ -139,10 +144,9 @@ export default function BondingPage() {
       <section className="card">
         <div className="card-header">Your Position</div>
 
-        <div className="card-content grid gap-4 sm:grid-cols-3">
+        <div className="card-content grid gap-4 sm:grid-cols-2">
           <Metric label="Governance Tokens" value={position.governanceBalance} />
           <Metric label="Estimated Value" value={position.estimatedValue} />
-          <Metric label="Total Purchases" value={String(position.totalPurchases)} />
         </div>
       </section>
     </div>

@@ -1,72 +1,211 @@
-import { useMemo, useState } from "react";
+import { getVaultRegistryContract } from "@dao/contracts-sdk";
+import { useEffect, useMemo, useState } from "react";
+import type {
+  VaultItem,
+  VaultsFilters,
+  VaultsFilterStatus,
+  VaultsMetrics,
+  VaultsModel,
+} from "@/types/models/vaults";
 import { useProtocolCapabilities } from "./useProtocolCapabilities";
-
-export type VaultStatus = "Active" | "Inactive";
-
-export type VaultItem = {
-  address: string;
-  asset: string;
-  guardian: string;
-  status: VaultStatus;
-  registeredAt: string;
-};
-
-export type VaultsFilters = {
-  asset: string;
-  guardian: string;
-  status: "All" | VaultStatus;
-};
-
-export type VaultsMetrics = {
-  totalVaults: number;
-  activeVaults: number;
-  assetsCovered: number;
-  guardianCoverage: number;
-};
-
-export type VaultsModel = {
-  vaults: VaultItem[];
-  filteredVaults: VaultItem[];
-  filters: VaultsFilters;
-  metrics: VaultsMetrics;
-  capabilities: ReturnType<typeof useProtocolCapabilities>;
-  setAssetFilter: (asset: string) => void;
-  setGuardianFilter: (guardian: string) => void;
-  setStatusFilter: (status: "All" | VaultStatus) => void;
-};
+import { useChainId, useReadContracts } from "wagmi";
+import { useVaultsModelProtocolReadDefinitions } from "./definitions/protocolReads";
+import { useProtocolReads } from "./useProtocolReads";
+import { getVaultFactoryContract } from "./getVaultFactoryContract";
+import { abiERC20, formatAddress, parseTimestamp } from "@/utils";
+import type { Address } from "viem";
+import { getReadContractResult, ZERO_ADDRESS } from "./shared/contractResults";
+import type { VaultRegistryDetail } from "./shared/contractTypes";
+import { resolveOptionalContract } from "./shared/resolveContract";
 
 export function useVaultsModel(): VaultsModel {
+  const chainId = useChainId();
   const capabilities = useProtocolCapabilities();
+  const {
+    vaultCount,
+    totalGuardians,
+    isDepositsActiveVaults,
+    listVaults,
+  } = useProtocolReads(
+    useVaultsModelProtocolReadDefinitions,
+  );
 
-  const vaults: VaultItem[] = [
-    {
-      address: "0x91A2...5d19",
-      asset: "USDC",
-      guardian: "0xA13F...91c2",
-      status: "Active",
-      registeredAt: "2026-01-12",
+  const vaultRegistryConfig = useMemo(() => {
+    return resolveOptionalContract(chainId, getVaultRegistryContract);
+  }, [chainId]);
+
+  const vaultFactoryConfig = useMemo(() => {
+    return resolveOptionalContract(chainId, getVaultFactoryContract);
+  }, [chainId]);
+
+  const vaultAddresses = useMemo(
+    () => ((listVaults as readonly Address[] | undefined) ?? []),
+    [listVaults],
+  );
+
+  const { data: vaultDetailsData } = useReadContracts({
+    allowFailure: true,
+    contracts: vaultRegistryConfig
+      ? vaultAddresses.map((vaultAddress) => ({
+          abi: vaultRegistryConfig.abi,
+          address: vaultRegistryConfig.address,
+          functionName: "getVaultDetail" as const,
+          args: [vaultAddress],
+        }))
+      : [],
+    query: {
+      enabled: Boolean(vaultRegistryConfig) && vaultAddresses.length > 0,
     },
-    {
-      address: "0x72B4...1f08",
-      asset: "DAI",
-      guardian: "0xC82A...77ee",
-      status: "Active",
-      registeredAt: "2026-01-09",
+  });
+
+  const vaultDetails = useMemo(
+    () =>
+      (vaultDetailsData ?? []).map((item) =>
+        getReadContractResult<VaultRegistryDetail>(item),
+      ),
+    [vaultDetailsData],
+  );
+
+  const vaultDetailsWithAsset = useMemo(
+    () =>
+      vaultDetails.reduce<Array<{ index: number; detail: VaultRegistryDetail }>>(
+        (accumulator, detail, index) => {
+          if (!detail?.asset) {
+            return accumulator;
+          }
+
+          accumulator.push({
+            index,
+            detail,
+          });
+
+          return accumulator;
+        },
+        [],
+      ),
+    [vaultDetails],
+  );
+
+  const { data: assetSymbolsData } = useReadContracts({
+    allowFailure: true,
+    contracts: vaultDetailsWithAsset.map(({ detail }) => ({
+        abi: abiERC20,
+        address: detail.asset,
+        functionName: "symbol" as const,
+      })),
+    query: {
+      enabled: vaultDetailsWithAsset.length > 0,
     },
-    {
-      address: "0x18C7...3b41",
-      asset: "ETH",
-      guardian: "0xF1E1...221c",
-      status: "Inactive",
-      registeredAt: "2025-12-28",
+  });
+
+  const assetSymbolsByVaultIndex = useMemo(() => {
+    return vaultDetailsWithAsset.reduce<Record<number, string>>(
+      (accumulator, { index, detail }, assetIndex) => {
+        accumulator[index] =
+          getReadContractResult<string>(assetSymbolsData?.[assetIndex]) ??
+          formatAddress(detail.asset);
+
+        return accumulator;
+      },
+      {},
+    );
+  }, [assetSymbolsData, vaultDetailsWithAsset]);
+
+  const { data: vaultFactoryWiringData } = useReadContracts({
+    allowFailure: true,
+    contracts: vaultFactoryConfig
+      ? [
+          {
+            abi: vaultFactoryConfig.abi,
+            address: vaultFactoryConfig.address,
+            functionName: "router" as const,
+          },
+          {
+            abi: vaultFactoryConfig.abi,
+            address: vaultFactoryConfig.address,
+            functionName: "core" as const,
+          },
+          {
+            abi: vaultFactoryConfig.abi,
+            address: vaultFactoryConfig.address,
+            functionName: "guardianAdministrator" as const,
+          },
+          {
+            abi: vaultFactoryConfig.abi,
+            address: vaultFactoryConfig.address,
+            functionName: "vaultRegistry" as const,
+          },
+        ]
+      : [],
+    query: {
+      enabled: Boolean(vaultFactoryConfig),
     },
-  ];
+  });
+
+  const vaultFactoryWiring = useMemo(() => {
+    return [
+      getReadContractResult<string>(vaultFactoryWiringData?.[0]) ?? ZERO_ADDRESS,
+      getReadContractResult<string>(vaultFactoryWiringData?.[1]) ?? ZERO_ADDRESS,
+      getReadContractResult<string>(vaultFactoryWiringData?.[2]) ?? ZERO_ADDRESS,
+      getReadContractResult<string>(vaultFactoryWiringData?.[3]) ?? ZERO_ADDRESS,
+    ];
+  }, [vaultFactoryWiringData]);
+
+  const vaultFactoryConfiguredWiringCount = vaultFactoryWiring.filter(
+    (value) => value !== ZERO_ADDRESS,
+  ).length;
+
+  const vaults: VaultItem[] = useMemo(() => {
+    return vaultAddresses.reduce<VaultItem[]>((accumulator, vaultAddress, index) => {
+      const detail = vaultDetails[index];
+
+      if (!detail) {
+        return accumulator;
+      }
+
+      accumulator.push({
+        address: formatAddress(vaultAddress),
+        fullAddress: vaultAddress,
+        asset: assetSymbolsByVaultIndex[index] ?? formatAddress(detail.asset),
+        guardian: formatAddress(detail.guardian),
+        status: detail.active ? "Active" : "Inactive",
+        registeredAt: detail.registeredAt
+          ? parseTimestamp(Number(detail.registeredAt)).toISOString().slice(0, 10)
+          : "—",
+      });
+
+      return accumulator;
+    }, []);
+  }, [assetSymbolsByVaultIndex, vaultAddresses, vaultDetails]);
+
+  const totalVaultsValue =
+    typeof vaultCount === "bigint" ? Number(vaultCount) : vaults.length;
 
   const [filters, setFilters] = useState<VaultsFilters>({
     asset: "All Assets",
     guardian: "",
     status: "All",
   });
+
+  const availableAssets = useMemo(() => {
+    return Array.from(new Set(vaults.map((vault) => vault.asset))).sort();
+  }, [vaults]);
+
+  const availableGuardians = useMemo(() => {
+    return Array.from(new Set(vaults.map((vault) => vault.guardian))).sort();
+  }, [vaults]);
+
+  useEffect(() => {
+    if (
+      filters.asset !== "All Assets" &&
+      !availableAssets.includes(filters.asset)
+    ) {
+      setFilters((prev) => ({
+        ...prev,
+        asset: "All Assets",
+      }));
+    }
+  }, [availableAssets, filters.asset]);
 
   const setAssetFilter = (asset: string) => {
     setFilters((prev) => ({
@@ -82,7 +221,7 @@ export function useVaultsModel(): VaultsModel {
     }));
   };
 
-  const setStatusFilter = (status: "All" | VaultStatus) => {
+  const setStatusFilter = (status: VaultsFilterStatus) => {
     setFilters((prev) => ({
       ...prev,
       status,
@@ -107,13 +246,59 @@ export function useVaultsModel(): VaultsModel {
 
   const metrics: VaultsMetrics = useMemo(() => {
     return {
-      totalVaults: vaults.length,
+      totalVaults: totalVaultsValue,
       activeVaults: vaults.filter((v) => v.status === "Active").length,
       assetsCovered: new Set(vaults.map((v) => v.asset)).size,
-      guardianCoverage: new Set(vaults.map((v) => v.guardian)).size,
+      guardianCoverage:
+        typeof totalGuardians === "bigint"
+          ? Number(totalGuardians)
+          : new Set(vaults.map((v) => v.guardian)).size,
     };
-  }, [vaults]);
+  }, [totalGuardians, totalVaultsValue, vaults]);
 
+  const isVaultDepositsPaused = isDepositsActiveVaults === true;
+  const hasVaultRegistry = Boolean(vaultRegistryConfig);
+  const vaultExplorerStatus = hasVaultRegistry
+    ? totalVaultsValue > 0
+      ? "Live"
+      : "Empty"
+    : "Unavailable";
+  const vaultExplorerSubtitle = hasVaultRegistry
+    ? totalVaultsValue > 0
+      ? `VaultRegistry.getAllVaults() returned ${totalVaultsValue} vaults.`
+      : "VaultRegistry is deployed, but no registered vaults were returned."
+    : "VaultRegistry is not deployed on the connected network.";
+  const guardianRoutingStatus =
+    vaultFactoryConfiguredWiringCount === 4
+      ? "Linked"
+      : vaultFactoryConfiguredWiringCount > 0
+        ? "Partial"
+        : "Unconfigured";
+  const guardianRoutingSubtitle =
+    vaultFactoryConfiguredWiringCount === 4
+      ? "VaultFactory router, core, guardian administrator and registry are wired."
+      : vaultFactoryConfiguredWiringCount > 0
+        ? `${vaultFactoryConfiguredWiringCount}/4 VaultFactory wiring points are configured.`
+        : "VaultFactory wiring is not configured on this network.";
+  const registryVisibilityStatus = hasVaultRegistry
+    ? totalVaultsValue > 0
+      ? "Tracked"
+      : "Empty"
+    : "Unavailable";
+  const registryVisibilitySubtitle = hasVaultRegistry
+    ? totalVaultsValue > 0
+      ? `VaultRegistry detail data is available for ${totalVaultsValue} registered vaults.`
+      : "VaultRegistry detail data is available, but no vaults are registered yet."
+    : "VaultRegistry is not deployed on the connected network.";
+
+  /*
+    totalVaults: vaultCount;
+    activeVaults: hay que llamar a cada vault para saber si está activa o no, así que lo derivamos de vaults filtrando por status
+    guardianCoverage: totalGuardians
+
+    Deposit Access: isDepositsActiveVaults
+  */
+  //
   // TODO:
   // vaults -> VaultRegistry.getAllVaults()
   // por cada vault -> VaultRegistry.getVaultDetail(vault)
@@ -135,6 +320,15 @@ export function useVaultsModel(): VaultsModel {
   return {
     vaults,
     filteredVaults,
+    availableAssets,
+    availableGuardians,
+    isVaultDepositsPaused,
+    vaultExplorerStatus,
+    vaultExplorerSubtitle,
+    guardianRoutingStatus,
+    guardianRoutingSubtitle,
+    registryVisibilityStatus,
+    registryVisibilitySubtitle,
     filters,
     metrics,
     capabilities,

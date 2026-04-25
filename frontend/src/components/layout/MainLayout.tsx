@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -11,6 +12,8 @@ import {
   Users,
 } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useProtocolCapabilities } from "@/hooks/useProtocolCapabilities";
+import type { ProtocolCapabilities } from "@/types/capabilities";
 
 const navigation = [
   {
@@ -44,6 +47,12 @@ const navigation = [
     icon: BarChart3,
   },
   {
+    name: "Treasury Ops",
+    href: "/treasury/operations",
+    icon: Landmark,
+    capability: "canOpenTreasuryOperations",
+  },
+  {
     name: "Operations",
     href: "/operations",
     icon: Settings,
@@ -57,11 +66,26 @@ const navigation = [
     name: "Admin",
     href: "/admin",
     icon: Activity,
+    capability: "canAccessAdminConsole",
   },
-];
+] as const satisfies ReadonlyArray<{
+  name: string;
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+  capability?: keyof ProtocolCapabilities;
+}>;
 
 export function MainLayout() {
   const location = useLocation();
+  const capabilities = useProtocolCapabilities();
+
+  const visibleNavigation = navigation.filter((item) => {
+    if (!item.capability) {
+      return true;
+    }
+
+    return capabilities[item.capability];
+  });
 
   return (
     <div className="min-h-screen bg-background text-text-primary">
@@ -85,7 +109,7 @@ export function MainLayout() {
           </div>
 
           <nav className="flex-1 space-y-1 px-4 py-6">
-            {navigation.map((item) => {
+            {visibleNavigation.map((item) => {
               const Icon = item.icon;
 
               return (
@@ -173,6 +197,8 @@ function getPageTitle(pathname: string) {
       return "Vault Infrastructure";
     case "/treasury":
       return "Treasury";
+    case "/treasury/operations":
+      return "Treasury Operations";
     case "/operations":
       return "Operations";
     case "/risk":

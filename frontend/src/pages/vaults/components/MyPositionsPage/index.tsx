@@ -1,7 +1,7 @@
 import { ArrowRight, BriefcaseBusiness, Coins, Wallet } from "lucide-react";
 import { useMyVaultPositionsModel } from "@/hooks/useMyVaultPositionsModel";
 import { Link } from "react-router-dom";
-import { HeroMetric, MetricCard } from "@/components/shared";
+import { EmptyState, HeroMetric, MetricCard } from "@/components/shared";
 
 export default function MyPositionsPage() {
   const { positions, totalDepositedValue, totalShareExposure } =
@@ -87,49 +87,52 @@ export default function MyPositionsPage() {
             </thead>
 
             <tbody>
-              {positions.map((position) => (
-                <tr
-                  key={position.vaultAddress}
-                  className="border-b border-border"
-                >
-                  <td className="px-6 py-4 text-sm font-medium text-text-primary">
-                    {position.vaultAddress}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-text-secondary">
-                    {position.asset}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-text-secondary">
-                    {position.deposited}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-text-secondary">
-                    {position.shares}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-text-secondary">
-                    {position.value}
-                  </td>
-                  <td className="px-6 py-4">
-                    <Link
-                      to={`/vaults/${position.vaultAddress}`}
-                      className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                    >
-                      View Vault
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                    {/* TODO: navegar a /vaults/:vaultAddress */}
+              {positions.length > 0 ? (
+                positions.map((position) => (
+                  <tr
+                    key={position.vaultAddress}
+                    className="border-b border-border"
+                  >
+                    <td className="px-6 py-4 text-sm font-medium text-text-primary">
+                      {position.vaultAddress}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-text-secondary">
+                      {position.asset}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-text-secondary">
+                      {position.deposited}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-text-secondary">
+                      {position.shares}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-text-secondary">
+                      {position.value}
+                    </td>
+                    <td className="px-6 py-4">
+                      <Link
+                        to={`/vaults/${position.vaultAddress}`}
+                        className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                      >
+                        View Vault
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                      {/* TODO: navegar a /vaults/:vaultAddress */}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10">
+                    <EmptyState
+                      title="No vault positions available"
+                      description="No vault positions were found for the connected account on this network."
+                    />
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
-
-        {positions.length === 0 && (
-          <div className="card-content">
-            <p className="text-sm text-text-secondary">
-              No vault positions available for the connected account.
-            </p>
-          </div>
-        )}
       </section>
     </div>
   );

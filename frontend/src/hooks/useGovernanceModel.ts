@@ -1,113 +1,215 @@
+import { getDaoGovernorContract, getGovernanceTokenContract } from "@dao/contracts-sdk";
+import { useMemo } from "react";
+import { useBlockNumber, useChainId, useConnection, useReadContracts } from "wagmi";
 import { useProtocolCapabilities } from "./useProtocolCapabilities";
-
-export type GovernanceStatus =
-  | "Pending"
-  | "Active"
-  | "Succeeded"
-  | "Defeated"
-  | "Queued"
-  | "Executed"
-  | "Canceled";
-
-export type GovernanceProposal = {
-  id: string;
-  title: string;
-  status: GovernanceStatus;
-  votes: string;
-  endDate: string;
-};
-
-export type GovernanceConfig = {
-  proposalThreshold: string;
-  votingDelay: string;
-  votingPeriod: string;
-  executionDelay: string;
-};
-
-export type GovernanceMetrics = {
-  activeProposals: number;
-  queuedProposals: number;
-  executedProposals: number;
-  participation: string;
-};
-
-export type GovernanceUserState = {
-  votingPower: string;
-  meetsProposalThreshold: boolean;
-};
-
-export type GovernanceModel = {
-  config: GovernanceConfig;
-  metrics: GovernanceMetrics;
-  proposals: GovernanceProposal[];
-  user: GovernanceUserState;
-  capabilities: ReturnType<typeof useProtocolCapabilities>;
-};
+import type {
+  GovernanceConfig,
+  GovernanceMetrics,
+  GovernanceModel,
+  GovernanceProposalSummary,
+  GovernanceUserState,
+} from "@/types/governance";
+import { useProtocolReads } from "./useProtocolReads";
+import { governanceProtocolReadDefinitions } from "./definitions/protocolReads";
+import { formatEstimatedBlockDate, formatTokenAmount } from "@/utils";
+import { getReadContractResult } from "./shared/contractResults";
+import type { GovernorProposalVotes } from "./shared/contractTypes";
+import {
+  getRecentProposalIndexes,
+  mapGovernorProposalState,
+} from "./shared/governance";
+import { resolveOptionalContract } from "./shared/resolveContract";
 
 export function useGovernanceModel(): GovernanceModel {
+  const chainId = useChainId();
+  const connection = useConnection();
   const capabilities = useProtocolCapabilities();
+  const { data: currentBlock } = useBlockNumber({
+    watch: true,
+  });
+  const { votingDelay, votingPeriod, proposalThreshold } = useProtocolReads(
+    governanceProtocolReadDefinitions,
+  );
 
-  // ===== MOCK CONFIG =====
+  const daoGovernorConfig = useMemo(() => {
+    return resolveOptionalContract(chainId, getDaoGovernorContract);
+  }, [chainId]);
+
+  const governanceTokenConfig = useMemo(() => {
+    return resolveOptionalContract(chainId, getGovernanceTokenContract);
+  }, [chainId]);
+
+  const { data: proposalCountData } = useReadContracts({
+    allowFailure: true,
+    contracts: daoGovernorConfig
+      ? [
+          {
+            abi: daoGovernorConfig.abi,
+            address: daoGovernorConfig.address,
+            functionName: "proposalCount" as const,
+          },
+        ]
+      : [],
+    query: {
+      enabled: Boolean(daoGovernorConfig),
+    },
+  });
+
+  const proposalCount = getReadContractResult<bigint>(proposalCountData?.[0]) ?? 0n;
+  const proposalIndexes = getRecentProposalIndexes(proposalCount);
+
+  const { data: proposalDetailsData } = useReadContracts({
+    allowFailure: true,
+    contracts: daoGovernorConfig
+      ? proposalIndexes.map((index) => ({
+          abi: daoGovernorConfig.abi,
+          address: daoGovernorConfig.address,
+          functionName: "proposalDetailsAt" as const,
+          args: [BigInt(index)],
+        }))
+      : [],
+    query: {
+      enabled: Boolean(daoGovernorConfig) && proposalIndexes.length > 0,
+    },
+  });
+
+  const proposalDetails = useMemo(
+    () =>
+      (proposalDetailsData ?? []).reduce<
+        Array<{
+          proposalId: bigint;
+          actionCount: number;
+        }>
+      >((accumulator, item) => {
+        const detail = getReadContractResult<
+          readonly [bigint, readonly string[], readonly bigint[], readonly string[], string]
+        >(item);
+
+        if (detail?.[0] != null) {
+          accumulator.push({
+            proposalId: detail[0],
+            actionCount: detail[1]?.length ?? 0,
+          });
+        }
+
+        return accumulator;
+      }, []),
+    [proposalDetailsData],
+  );
+
+  const proposalIds = useMemo(
+    () => proposalDetails.map((proposal) => proposal.proposalId),
+    [proposalDetails],
+  );
+
+  const { data: proposalStateData } = useReadContracts({
+    allowFailure: true,
+    contracts: daoGovernorConfig
+      ? proposalIds.flatMap((proposalId) => [
+          {
+            abi: daoGovernorConfig.abi,
+            address: daoGovernorConfig.address,
+            functionName: "state" as const,
+            args: [proposalId],
+          },
+          {
+            abi: daoGovernorConfig.abi,
+            address: daoGovernorConfig.address,
+            functionName: "proposalVotes" as const,
+            args: [proposalId],
+          },
+          {
+            abi: daoGovernorConfig.abi,
+            address: daoGovernorConfig.address,
+            functionName: "proposalDeadline" as const,
+            args: [proposalId],
+          },
+        ])
+      : [],
+    query: {
+      enabled: Boolean(daoGovernorConfig) && proposalIds.length > 0,
+    },
+  });
+
+  const { data: userVotingPowerData } = useReadContracts({
+    allowFailure: true,
+    contracts:
+      governanceTokenConfig && connection.address
+        ? [
+            {
+              abi: governanceTokenConfig.abi,
+              address: governanceTokenConfig.address,
+              functionName: "getVotes" as const,
+              args: [connection.address],
+            },
+          ]
+        : [],
+    query: {
+      enabled: Boolean(governanceTokenConfig && connection.address),
+    },
+  });
+
+  const proposals = useMemo<GovernanceProposalSummary[]>(() => {
+    return proposalDetails.map(({ proposalId, actionCount }, index) => {
+      const stateIndex = index * 3;
+      const rawState = getReadContractResult<number | bigint>(
+        proposalStateData?.[stateIndex],
+      );
+      const proposalVotes =
+        getReadContractResult<GovernorProposalVotes>(
+          proposalStateData?.[stateIndex + 1],
+        ) ??
+        [0n, 0n, 0n];
+      const proposalDeadline = getReadContractResult<bigint>(
+        proposalStateData?.[stateIndex + 2],
+      );
+      const totalVotes =
+        (proposalVotes[0] ?? 0n) +
+        (proposalVotes[1] ?? 0n) +
+        (proposalVotes[2] ?? 0n);
+
+      return {
+        id: proposalId.toString(),
+        title:
+          actionCount > 0
+            ? `Governance proposal with ${actionCount} action${actionCount === 1 ? "" : "s"}`
+            : "Governance proposal",
+        status: mapGovernorProposalState(rawState),
+        votes: formatTokenAmount(totalVotes, "GOV"),
+        endDate: formatEstimatedBlockDate({
+          targetBlock: proposalDeadline,
+          currentBlock,
+          chainId,
+        }),
+      };
+    });
+  }, [chainId, currentBlock, proposalDetails, proposalStateData]);
+
   const config: GovernanceConfig = {
-    proposalThreshold: "4%",
-    votingDelay: "24h",
-    votingPeriod: "72h",
-    executionDelay: "48h",
+    proposalThreshold:
+      typeof proposalThreshold === "bigint"
+        ? formatTokenAmount(proposalThreshold, "GOV")
+        : "0 GOV",
+    votingDelay: votingDelay ? `${votingDelay || "0"} blocks` : "0 blocks",
+    votingPeriod: votingPeriod
+      ? `${votingPeriod.toString()} blocks`
+      : "0 blocks",
   };
 
-  // ===== MOCK PROPOSALS =====
-  const proposals: GovernanceProposal[] = [
-    {
-      id: "P-101",
-      title: "Update supported vault asset policy",
-      status: "Active",
-      votes: "412,950 GOV",
-      endDate: "2026-02-10",
-    },
-    {
-      id: "P-102",
-      title: "Allocate treasury reserves to protocol operations",
-      status: "Queued",
-      votes: "389,100 GOV",
-      endDate: "2026-02-08",
-    },
-    {
-      id: "P-103",
-      title: "Adjust guardian minimum stake",
-      status: "Executed",
-      votes: "501,330 GOV",
-      endDate: "2026-02-02",
-    },
-  ];
-
-  // ===== METRICS =====
   const metrics: GovernanceMetrics = {
-    activeProposals: proposals.filter((p) => p.status === "Active").length,
-    queuedProposals: proposals.filter((p) => p.status === "Queued").length,
-    executedProposals: proposals.filter((p) => p.status === "Executed").length,
-    participation: "62%",
+    activeProposals: proposals.filter((proposal) => proposal.status === "Active").length,
+    queuedProposals: proposals.filter((proposal) => proposal.status === "Queued").length,
+    executedProposals: proposals.filter((proposal) => proposal.status === "Executed").length,
+    participation: "On-chain list",
   };
 
-  // ===== MOCK USER STATE =====
+  const votingPower = getReadContractResult<bigint>(userVotingPowerData?.[0]) ?? 0n;
+  const thresholdValue = typeof proposalThreshold === "bigint" ? proposalThreshold : 0n;
+
   const user: GovernanceUserState = {
-    votingPower: "0 GOV",
-    meetsProposalThreshold: false,
+    votingPower: formatTokenAmount(votingPower, "GOV"),
+    meetsProposalThreshold: votingPower >= thresholdValue && thresholdValue > 0n,
   };
-
-  // ===== FUTURO =====
-  // TODO:
-  // config.proposalThreshold -> DaoGovernor.proposalThreshold()
-  // config.votingDelay -> DaoGovernor.votingDelay()
-  // config.votingPeriod -> DaoGovernor.votingPeriod()
-  // config.executionDelay -> TimeLock minDelay
-  //
-  // proposals -> fuente RPC / Graph / indexación de eventos
-  // proposals.status -> DaoGovernor.state(proposalId)
-  //
-  // user.votingPower -> GovernanceToken / IVotes.getVotes(user, blockNumber)
-  // user.meetsProposalThreshold -> comparar votingPower vs proposalThreshold
-  //
-  // capabilities.canCreateProposal debería derivarse usando este estado real
 
   return {
     config,

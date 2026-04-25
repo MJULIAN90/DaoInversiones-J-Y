@@ -1,4 +1,5 @@
 export { ActionField } from "./ActionField";
+export { CopyableAddressCard } from "./CopyableAddressCard";
 export { default as GuardianToolsPage } from "./GuardianToolsPage";
 export { MetaRow } from "./MetaRow";
 export { default as MyPositionsPage } from "./MyPositionsPage";

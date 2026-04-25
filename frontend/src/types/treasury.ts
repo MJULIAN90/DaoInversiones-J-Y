@@ -1,6 +1,6 @@
-export type AssetCategory = "DAO Asset" | "Non-DAO Asset";
-export type AssetVisibility = "Public" | "Private" | "Restricted";
-export type AssetType = "Native" | "ERC20";
+export type AssetCategory = "DAO Asset" | "Non-DAO Asset" | "Native Asset";
+export type AssetVisibility = "Tracked" | "Unavailable";
+export type AssetType = "ERC20" | "Native";
 
 export interface TreasuryAsset {
   token: string;
@@ -11,8 +11,14 @@ export interface TreasuryAsset {
 }
 
 export interface TreasuryMetrics {
-  nativeBalance: string;
   trackedErc20Assets: number;
   daoAssetExposure: string;
   operationalLiquidity: string;
+  nativeReserve: string;
+}
+
+export interface TreasuryModel {
+  assets: TreasuryAsset[];
+  metrics: TreasuryMetrics;
+  capabilities: import("./capabilities").ProtocolCapabilities;
 }

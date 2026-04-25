@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.33;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
+import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {IGuardianBondEscrow} from "../interfaces/guardians/IGuardianBondEscrow.sol";
 import {CommonErrors} from "../libraries/errors/CommonErrors.sol";
 
 contract GuardianAdministrator {
+  using EnumerableSet for EnumerableSet.AddressSet;
   using Strings for address;
   using Strings for uint256;
 
@@ -33,6 +35,7 @@ contract GuardianAdministrator {
   address public immutable timelock;
 
   mapping(address => GuardianDetail) private guardians;
+  EnumerableSet.AddressSet private activeGuardians;
 
   event GuardianApplied(address indexed guardian, uint256 indexed proposalId);
   event GuardianApproved(address indexed guardian);
@@ -40,6 +43,7 @@ contract GuardianAdministrator {
   event GuardianResigned(address indexed guardian, uint256 stakeRefunded);
   event GuardianBanned(address indexed guardian, uint256 stakeForfeit);
   event MinStakeUpdated(uint256 oldStake, uint256 newStake);
+  event GovernanceVotesDelegated(address indexed governanceToken, address indexed delegatee);
 
   error GuardianAdministrator__AlreadyApplied();
   error GuardianAdministrator__InvalidStatus();
@@ -77,6 +81,16 @@ contract GuardianAdministrator {
     if (address(bondEscrow_) == address(0))
       revert CommonErrors.ZeroAddress();
     bondEscrow = bondEscrow_;
+  }
+
+  function selfDelegateGovernanceVotes(address governanceToken_) external {
+    if (governanceToken_ == address(0)) {
+      revert CommonErrors.ZeroAddress();
+    }
+
+    IVotes(governanceToken_).delegate(address(this));
+
+    emit GovernanceVotesDelegated(governanceToken_, address(this));
   }
 
   function applyGuardian() external {
@@ -134,6 +148,7 @@ contract GuardianAdministrator {
     }
 
     guardianDetail.status = Status.Active;
+    activeGuardians.add(guardian);
 
     emit GuardianApproved(guardian);
   }
@@ -181,6 +196,7 @@ contract GuardianAdministrator {
 
     guardian.status = Status.Resigned;
     guardian.balance = 0;
+    activeGuardians.remove(sender);
 
     if (refund > 0) {
       bondEscrow.releaseOnResign(sender, refund);
@@ -204,6 +220,7 @@ contract GuardianAdministrator {
 
     guardianDetail.status = Status.Banned;
     guardianDetail.balance = 0;
+    activeGuardians.remove(guardian);
 
     if (forfeit > 0) {
       bondEscrow.slashToTreasury(guardian, forfeit);
@@ -257,5 +274,9 @@ contract GuardianAdministrator {
     returns (bool)
   {
     return guardians[guardian].status == Status.Active;
+  }
+
+  function totalActiveGuardians() external view returns (uint256) {
+    return activeGuardians.length();
   }
 }

@@ -1,48 +1,11 @@
+import type {
+  ProposalDetailData,
+  ProposalDetailModel,
+} from "@/types/models/proposalDetail";
 import { useProtocolCapabilities } from "./useProtocolCapabilities";
 
-export type ProposalDetailStatus =
-  | "Pending"
-  | "Active"
-  | "Succeeded"
-  | "Defeated"
-  | "Queued"
-  | "Executed"
-  | "Canceled";
-
-export type ProposalVoteBreakdown = {
-  forVotes: string;
-  againstVotes: string;
-  abstainVotes: string;
-};
-
-export type ProposalTimelineItem = {
-  label: string;
-  value: string;
-};
-
-export type ProposalDetailData = {
-  id: string;
-  title: string;
-  status: ProposalDetailStatus;
-  description: string;
-  proposer: string;
-  executionEta: string;
-  votes: ProposalVoteBreakdown;
-  timeline: ProposalTimelineItem[];
-  actions: Array<{
-    target: string;
-    value: string;
-    calldata: string;
-  }>;
-};
-
-export type ProposalDetailModel = {
-  proposal: ProposalDetailData;
-  capabilities: ReturnType<typeof useProtocolCapabilities>;
-};
-
 export function useProposalDetailModel(
-  proposalId?: string
+  proposalId?: string,
 ): ProposalDetailModel {
   const capabilities = useProtocolCapabilities();
 

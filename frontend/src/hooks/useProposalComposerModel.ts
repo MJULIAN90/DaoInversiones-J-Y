@@ -1,73 +1,72 @@
 import { useState } from "react";
+import { useConnection } from "wagmi";
+import type { Address } from "viem";
+import Swal from "sweetalert2";
+import type {
+  ProposalComposerModel,
+} from "@/types/models/proposalComposer";
 import { useProtocolCapabilities } from "./useProtocolCapabilities";
-
-export type ProposalActionInput = {
-  id: string;
-  target: string;
-  value: string;
-  calldata: string;
-};
-
-export type ProposalComposerModel = {
-  title: string;
-  setTitle: (value: string) => void;
-
-  description: string;
-  setDescription: (value: string) => void;
-
-  actions: ProposalActionInput[];
-  addAction: () => void;
-  updateAction: (
-    id: string,
-    field: keyof Omit<ProposalActionInput, "id">,
-    value: string
-  ) => void;
-  removeAction: (id: string) => void;
-
-  votingPower: string;
-  proposalThreshold: string;
-  meetsThreshold: boolean;
-
-  isSubmitting: boolean;
-  capabilities: ReturnType<typeof useProtocolCapabilities>;
-};
+import { getTransactionError, isValidAddress } from "@/utils";
+import useWriteContracts from "./useWriteContracts";
+import {
+  createEmptyProposalAction,
+  isValidProposalCalldata,
+  isValidProposalExecutionValue,
+} from "./shared/proposalComposer";
 
 export function useProposalComposerModel(): ProposalComposerModel {
   const capabilities = useProtocolCapabilities();
+  const connection = useConnection();
+  const { executeWrite } = useWriteContracts();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [actions, setActions] = useState<ProposalActionInput[]>([
-    {
-      id: crypto.randomUUID(),
-      target: "",
-      value: "0",
-      calldata: "",
-    },
-  ]);
+  const [actions, setActions] = useState([createEmptyProposalAction()]);
+  const [delegateAddress, setDelegateAddress] = useState("");
 
   const [isSubmitting] = useState(false);
+  const [isDelegatingVotes, setIsDelegatingVotes] = useState(false);
 
   const votingPower = "0 GOV";
   const proposalThreshold = "4%";
   const meetsThreshold = capabilities.canCreateProposal;
+  const normalizedDelegateAddress = delegateAddress.trim();
+  const isDelegateAddressValid =
+    normalizedDelegateAddress !== "" &&
+    isValidAddress(normalizedDelegateAddress);
+  const delegateAddressError =
+    normalizedDelegateAddress !== "" && !isDelegateAddressValid
+      ? "Enter a valid delegate address."
+      : undefined;
+  const canDelegateVotes =
+    Boolean(connection.address) &&
+    isDelegateAddressValid &&
+    !isDelegatingVotes;
+  const isTitleValid = title.trim().length >= 5;
+  const isDescriptionValid = description.trim().length >= 10;
+  const areActionsValid = actions.every((action) => {
+    return (
+      isValidAddress(action.target.trim()) &&
+      isValidProposalExecutionValue(action.value) &&
+      isValidProposalCalldata(action.calldata)
+    );
+  });
+  const canSubmitProposal =
+    capabilities.canCreateProposal &&
+    isTitleValid &&
+    isDescriptionValid &&
+    actions.length > 0 &&
+    areActionsValid &&
+    !isSubmitting;
 
   const addAction = () => {
-    setActions((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        target: "",
-        value: "0",
-        calldata: "",
-      },
-    ]);
+    setActions((prev) => [...prev, createEmptyProposalAction()]);
   };
 
   const updateAction = (
     id: string,
-    field: keyof Omit<ProposalActionInput, "id">,
-    value: string
+    field: "target" | "value" | "calldata",
+    value: string,
   ) => {
     setActions((prev) =>
       prev.map((action) =>
@@ -78,6 +77,64 @@ export function useProposalComposerModel(): ProposalComposerModel {
 
   const removeAction = (id: string) => {
     setActions((prev) => prev.filter((action) => action.id !== id));
+  };
+
+  const delegateVotes = async () => {
+    if (!canDelegateVotes) {
+      return;
+    }
+
+    setIsDelegatingVotes(true);
+
+    Swal.fire({
+      title: "Delegating voting power",
+      text: "Confirm the delegation transaction in your wallet.",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
+    try {
+      const response = await executeWrite({
+        functionContract: "getGovernanceTokenContract",
+        functionName: "delegate",
+        args: [normalizedDelegateAddress as Address],
+        options: {
+          waitForReceipt: true,
+        },
+      });
+
+      if (response?.receipt?.status !== "success") {
+        throw new Error("Vote delegation failed.");
+      }
+
+      setDelegateAddress("");
+      Swal.close();
+
+      await Swal.fire({
+        title: "Votes delegated",
+        text: "Your governance voting power delegation was updated successfully.",
+        icon: "success",
+        confirmButtonText: "OK",
+      });
+    } catch (error) {
+      const transactionError = getTransactionError(error);
+
+      Swal.update({
+        title: transactionError.title,
+        text: transactionError.message,
+        icon: "error",
+        showConfirmButton: true,
+        confirmButtonText: "OK",
+        allowOutsideClick: true,
+        allowEscapeKey: true,
+      });
+    } finally {
+      setIsDelegatingVotes(false);
+    }
   };
 
   // TODO:
@@ -112,6 +169,13 @@ export function useProposalComposerModel(): ProposalComposerModel {
     votingPower,
     proposalThreshold,
     meetsThreshold,
+    delegateAddress,
+    setDelegateAddress,
+    delegateAddressError,
+    canDelegateVotes,
+    isDelegatingVotes,
+    delegateVotes,
+    canSubmitProposal,
     isSubmitting,
     capabilities,
   };

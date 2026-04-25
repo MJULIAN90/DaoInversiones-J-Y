@@ -1,3 +1,5 @@
+import { formatUnits } from "viem";
+
 const TOKEN_SYMBOLS: Record<string, string> = {
   ETH: "ETH",
   WETH: "WETH",
@@ -24,20 +26,27 @@ export function formatCurrency(
 }
 
 export function formatTokenAmount(
-  value: string | number,
-  symbol: string,
-  decimals: number = 18
+  value: string | number | bigint,
+  symbol?: string,
+  decimals: number = 18,
 ): string {
-  const num = typeof value === "string" ? parseFloat(value) : value;
+  const formattedValue =
+    typeof value === "bigint"
+      ? formatUnits(value, decimals)
+      : typeof value === "string"
+        ? value
+        : String(value);
+
+  const num = parseFloat(formattedValue);
   if (isNaN(num)) return "—";
 
-  const adjusted = num / Math.pow(10, decimals);
-  const displayDecimals = adjusted < 1 ? 6 : 2;
-
-  return `${adjusted.toLocaleString("en-US", {
+  const displayDecimals = num < 1 ? 6 : 2;
+  const formatted = num.toLocaleString("en-US", {
     minimumFractionDigits: displayDecimals,
     maximumFractionDigits: displayDecimals,
-  })} ${symbol}`;
+  });
+
+  return symbol ? `${formatted} ${symbol}` : formatted;
 }
 
 export function parseTokenAmount(value: string, decimals: number = 18): bigint {

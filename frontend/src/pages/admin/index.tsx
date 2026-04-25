@@ -3,7 +3,7 @@ import { useAdminModel } from "@/hooks/useAdminModel";
 import { HeroMetric, MetricCard, ContractGroup, CapabilityRow, UpgradeRow, DiagnosticCard } from "./components";
 
 export default function AdminPage() {
-  const { metrics, contracts, diagnostics, capabilities } = useAdminModel();
+  const { metrics, contracts, diagnostics, summary, capabilities } = useAdminModel();
 
   return (
     <div className="space-y-8">
@@ -24,35 +24,35 @@ export default function AdminPage() {
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <HeroMetric label="Contracts Tracked" value={String(metrics.contractsTracked)} />
-          <HeroMetric label="Upgradeable Systems" value={String(metrics.upgradeableSystems)} />
-          <HeroMetric label="Diagnostics" value={metrics.diagnostics} />
-          <HeroMetric label="Admin Posture" value={metrics.adminPosture} />
+          <HeroMetric label="Contracts Tracked" value={summary.contractRegistryValue} />
+          <HeroMetric label="Upgradeable Systems" value={summary.upgradeableAwarenessValue} />
+          <HeroMetric label="Diagnostics" value={summary.protocolDiagnosticsValue} />
+          <HeroMetric label="Admin Posture" value={summary.capabilitiesValue} />
         </div>
       </section>
 
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Contract Registry"
-          value="Mapped"
-          subtitle="Core, governance, guardian and vault contracts are surfaced."
+          value={String(metrics.contractsTracked)}
+          subtitle="Core, governance, guardian and vault contracts are surfaced from deployment data."
           icon={<Database className="h-5 w-5" />}
         />
         <MetricCard
           title="Capabilities View"
-          value="Derived"
-          subtitle="Admin-facing access should be based on capabilities, not raw UI checks."
+          value={summary.capabilitiesValue}
+          subtitle="Admin-facing access is based on derived protocol capabilities."
           icon={<Shield className="h-5 w-5" />}
         />
         <MetricCard
           title="Upgradeable Awareness"
-          value="Visible"
+          value={`${metrics.upgradeableSystems} systems`}
           subtitle="Upgradeable infrastructure is identified separately from static contracts."
           icon={<Wrench className="h-5 w-5" />}
         />
         <MetricCard
           title="Protocol Diagnostics"
-          value="Observed"
+          value={summary.protocolDiagnosticsValue}
           subtitle="Global state signals remain centralized for review."
           icon={<Activity className="h-5 w-5" />}
         />
@@ -89,23 +89,39 @@ export default function AdminPage() {
             <div className="card-content space-y-4">
               <CapabilityRow
                 title="Treasury Operations"
-                status="Restricted"
-                tone="warning"
+                status={capabilities.canOpenTreasuryOperations ? "Available" : "Restricted"}
+                tone={capabilities.canOpenTreasuryOperations ? "success" : "warning"}
               />
               <CapabilityRow
                 title="Protocol Controls"
-                status="Manager / Emergency"
-                tone="neutral"
+                status={
+                  capabilities.canPauseVaultCreation || capabilities.canPauseVaultDeposits
+                    ? "Manager / Emergency"
+                    : "Restricted"
+                }
+                tone={
+                  capabilities.canPauseVaultCreation || capabilities.canPauseVaultDeposits
+                    ? "neutral"
+                    : "warning"
+                }
               />
               <CapabilityRow
                 title="Risk Controls"
-                status="Protected"
-                tone="warning"
+                status={
+                  capabilities.canPauseRiskExecution || capabilities.canResumeRiskExecution
+                    ? "Manager / Emergency"
+                    : "Restricted"
+                }
+                tone={
+                  capabilities.canPauseRiskExecution || capabilities.canResumeRiskExecution
+                    ? "neutral"
+                    : "warning"
+                }
               />
               <CapabilityRow
                 title="Guardian Operations"
-                status="Role-Derived"
-                tone="success"
+                status={capabilities.canAccessGuardianOperations ? "Role-Derived" : "Restricted"}
+                tone={capabilities.canAccessGuardianOperations ? "success" : "warning"}
               />
 
               <div className="rounded-2xl border border-border bg-gray-50 px-4 py-4">
@@ -117,13 +133,13 @@ export default function AdminPage() {
                   protocol session layer instead of directly exposing role checks
                   inside individual components.
                 </p>
-                <p className="mt-3 text-sm text-text-secondary">
-                  Admin console access:{" "}
-                  <span className="font-medium text-text-primary">
-                    {capabilities.canAccessAdminConsole ? "Enabled" : "Restricted"}
-                  </span>
-                </p>
-              </div>
+                  <p className="mt-3 text-sm text-text-secondary">
+                    Admin console access:{" "}
+                    <span className="font-medium text-text-primary">
+                      {capabilities.canAccessAdminConsole ? "Enabled" : "Restricted"}
+                    </span>
+                  </p>
+                </div>
             </div>
           </div>
 
@@ -137,11 +153,11 @@ export default function AdminPage() {
               />
               <UpgradeRow
                 title="RiskManager"
-                description="Upgradeable risk validation and execution safety layer."
+                description="UUPS upgradeable risk validation and execution safety layer."
               />
               <UpgradeRow
                 title="StrategyRouter"
-                description="Upgradeable routing layer for strategy execution."
+                description="UUPS upgradeable routing layer for strategy execution."
               />
 
               <div className="rounded-2xl border border-border bg-yellow-50 px-4 py-4">

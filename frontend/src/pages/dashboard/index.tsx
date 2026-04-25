@@ -1,23 +1,25 @@
 import { Building2, Coins, Landmark, Users } from "lucide-react";
-import { Link } from "react-router-dom";
 import { useDashboardModel } from "@/hooks/useDashboardModel";
 import { MetricCard, QuickAction } from "@/components/shared";
-import { StatusRow, OverviewRow, ActivityItem, MiniStat, QuickActionButton } from "./components";
-
-function formatBondingStatus(value: "active" | "finalized") {
-  return value === "active" ? "Active" : "Finalized";
-}
-
-function formatEnabledStatus(value: "enabled" | "paused") {
-  return value === "enabled" ? "Enabled" : "Paused";
-}
-
-function formatExecutionStatus(value: "monitoring" | "paused") {
-  return value === "monitoring" ? "Monitoring" : "Paused";
-}
+import {
+  StatusRow,
+  OverviewRow,
+  ActivityItem,
+  MiniStat,
+  QuickActionButton,
+} from "./components";
+import { useGovernanceModel } from "@/hooks/useGovernanceModel";
+import { useTreasuryModel } from "@/hooks/useTreasuryModel";
+import {
+  formatBondingStatus,
+  formatEnabledStatus,
+  formatExecutionStatus,
+} from "./formatters";
 
 export default function DashboardPage() {
   const { metrics, status, activity, capabilities } = useDashboardModel();
+  const { config } = useGovernanceModel();
+  const { metrics: treasuryMetrics } = useTreasuryModel();
 
   return (
     <div className="space-y-8">
@@ -50,14 +52,14 @@ export default function DashboardPage() {
                 disabled={false}
                 to="/governance"
               />
-              <QuickActionButton
-                label="Apply as Guardian"
-                disabled={!capabilities.canApplyAsGuardian}
-                to="/guardians"
-              />
+              {capabilities.canApplyAsGuardian ? (
+                <QuickActionButton
+                  label="Apply as Guardian"
+                  disabled={false}
+                  to="/guardians"
+                />
+              ) : null}
             </div>
-
-            {/* TODO: conectar estos botones con navegación real o acciones de producto */}
           </div>
 
           <div className="rounded-3xl bg-white/12 p-6 backdrop-blur">
@@ -106,7 +108,7 @@ export default function DashboardPage() {
         <MetricCard
           title="Treasury Snapshot"
           value={metrics.treasuryValue}
-          subtitle="Native and ERC20 treasury visibility"
+          subtitle="Tracked ERC20 treasury visibility"
           icon={<Landmark className="h-5 w-5" />}
         />
         <MetricCard
@@ -123,6 +125,7 @@ export default function DashboardPage() {
         />
       </section>
 
+      {/* TODO: Pending Protocol Overview:  */}
       <section className="grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
         <div className="card">
           <div className="card-header">Protocol Overview</div>
@@ -151,20 +154,20 @@ export default function DashboardPage() {
             <OverviewRow
               title="Treasury Layer"
               description="Reserve visibility and controlled withdrawals"
-              status="Visible"
-              tone="neutral"
+              status="Active"
+              tone="success"
             />
             <OverviewRow
               title="Guardian Network"
               description="Bonded operator lifecycle and application flow"
               status="Monitoring"
-              tone="warning"
+              tone="success"
             />
             <OverviewRow
               title="Risk Monitoring"
               description="Execution safety and asset validation checks"
               status={formatExecutionStatus(status.execution)}
-              tone={status.execution === "monitoring" ? "warning" : "danger"}
+              tone="success"
             />
           </div>
         </div>
@@ -209,11 +212,6 @@ export default function DashboardPage() {
                 to="/treasury"
               />
             </div>
-
-            {/* TODO:
-              - deshabilitar o adaptar acciones según capabilities
-              - conectar navegación hacia bonding / governance / vaults / treasury
-            */}
           </div>
         </div>
       </section>
@@ -221,27 +219,26 @@ export default function DashboardPage() {
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="card">
           <div className="card-header">Governance Snapshot</div>
-          <div className="card-content grid gap-4 sm:grid-cols-3">
-            <MiniStat label="Voting Delay" value="24h" />
-            <MiniStat label="Voting Period" value="72h" />
-            <MiniStat label="Execution Delay" value="48h" />
-
-            {/* TODO: mover estos datos a useGovernanceModel o a un snapshot agregado */}
+          <div className="card-content grid gap-4 sm:grid-cols-2">
+            <MiniStat label="Voting Delay" value={config.votingDelay} />
+            <MiniStat label="Voting Period" value={config.votingPeriod} />
           </div>
         </div>
 
         <div className="card">
           <div className="card-header">Treasury Snapshot</div>
-          <div className="card-content grid gap-4 sm:grid-cols-3">
-            <MiniStat label="Native Balance" value="320 ETH" />
-            <MiniStat label="Tracked ERC20" value="6 Assets" />
-            <MiniStat label="Liquidity" value="Stable" />
-
-            {/* TODO: mover estos datos a useTreasuryModel o a un snapshot agregado */}
+          <div className="card-content grid gap-4 sm:grid-cols-2">
+            <MiniStat
+              label="Tracked ERC20"
+              value={String(treasuryMetrics.trackedErc20Assets)}
+            />
+            <MiniStat
+              label="Liquidity"
+              value={treasuryMetrics.operationalLiquidity}
+            />
           </div>
         </div>
       </section>
     </div>
   );
 }
-

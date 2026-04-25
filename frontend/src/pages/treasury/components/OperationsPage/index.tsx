@@ -5,14 +5,19 @@ import { HeroMetric, InfoRow } from "@/components/shared";
 export default function TreasuryOperationsPage() {
   const {
     tokens,
+    tokenAddress,
+    setTokenAddress,
     selectedToken,
-    setSelectedToken,
     amount,
     setAmount,
     recipient,
     setRecipient,
+    isAmountValid,
+    isRecipientValid,
     canExecute,
+    isSubmitting,
     capabilities,
+    executeWithdrawal,
   } = useTreasuryOperationsModel();
 
   return (
@@ -44,21 +49,30 @@ export default function TreasuryOperationsPage() {
 
           <div className="card-content space-y-5">
             <div>
-              <label className="text-sm text-text-secondary">Token</label>
-              <select
-                value={selectedToken?.address ?? ""}
-                onChange={(e) => {
-                  const token = tokens.find((item) => item.address === e.target.value);
-                  if (token) setSelectedToken(token);
-                }}
+              <label className="text-sm text-text-secondary">Token Address</label>
+              <input
+                type="text"
+                list="treasury-token-options"
+                value={tokenAddress}
+                onChange={(e) => setTokenAddress(e.target.value)}
+                placeholder="0x..."
                 className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
-              >
+              />
+              <datalist id="treasury-token-options">
                 {tokens.map((token) => (
-                  <option key={token.address} value={token.address}>
+                  <option
+                    key={token.address}
+                    value={token.address}
+                    label={`${token.symbol} — ${token.category}`}
+                  >
                     {token.symbol} — {token.category}
                   </option>
                 ))}
-              </select>
+              </datalist>
+              <p className="mt-2 text-xs leading-6 text-text-secondary">
+                You can paste any ERC20 address. Known treasury assets are suggested
+                below, and the category is resolved from protocol support rules.
+              </p>
             </div>
 
             <div>
@@ -70,6 +84,11 @@ export default function TreasuryOperationsPage() {
                 placeholder="Enter withdrawal amount"
                 className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
               />
+              {!isAmountValid && amount.trim() !== "" ? (
+                <p className="mt-2 text-sm text-danger">
+                  Enter a numeric amount greater than 0.
+                </p>
+              ) : null}
             </div>
 
             <div>
@@ -81,20 +100,20 @@ export default function TreasuryOperationsPage() {
                 placeholder="0x..."
                 className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
               />
+              {!isRecipientValid && recipient.trim() !== "" ? (
+                <p className="mt-2 text-sm text-danger">
+                  Enter a valid recipient address.
+                </p>
+              ) : null}
             </div>
 
             <button
               className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
               disabled={!canExecute}
+              onClick={executeWithdrawal}
             >
-              Execute Withdrawal
+              {isSubmitting ? "Processing Withdrawal..." : "Execute Withdrawal"}
             </button>
-
-            {/* TODO:
-              - si selectedToken.category === "DAO Asset" usar withdrawDaoERC20(...)
-              - si selectedToken.category === "Non-DAO Asset" usar withdrawNotAssetDaoERC20(...)
-              - validar recipient y amount antes del submit
-            */}
           </div>
         </div>
 
@@ -103,6 +122,7 @@ export default function TreasuryOperationsPage() {
             <div className="card-header">Operation Summary</div>
 
             <div className="card-content space-y-4">
+              <InfoRow label="Token Address" value={tokenAddress || "—"} />
               <InfoRow label="Selected Token" value={selectedToken?.symbol ?? "—"} />
               <InfoRow label="Category" value={selectedToken?.category ?? "—"} />
               <InfoRow label="Amount" value={amount || "—"} />
@@ -119,10 +139,11 @@ export default function TreasuryOperationsPage() {
                   <AlertTriangle className="mt-0.5 h-5 w-5 text-yellow-700" />
                   <div>
                     <p className="text-sm font-medium text-yellow-800">
-                      Category Separation
+                      DAO Asset Withdrawals
                     </p>
                     <p className="mt-1 text-sm leading-6 text-yellow-700">
-                      DAO assets and non-DAO assets should never share the same withdrawal path.
+                      You can paste any ERC20 address, but direct execution is
+                      only enabled for DAO-classified assets in this MVP.
                     </p>
                   </div>
                 </div>
@@ -145,18 +166,6 @@ export default function TreasuryOperationsPage() {
             </div>
           </div>
 
-          <div className="card">
-            <div className="card-header">Future Native Withdrawal</div>
-
-            <div className="card-content">
-              <p className="text-sm leading-7 text-text-secondary">
-                Native treasury withdrawal should be modeled separately from ERC20
-                operations and connected to the dedicated native withdrawal path.
-              </p>
-
-              {/* TODO: agregar flujo específico para withdrawDaoNative(...) */}
-            </div>
-          </div>
         </div>
       </section>
     </div>

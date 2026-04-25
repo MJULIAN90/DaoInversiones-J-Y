@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Vote } from "lucide-react";
 import { useProposalComposerModel } from "@/hooks/useProposalComposerModel";
 import { HeroMetric, InfoRow } from "@/components/shared";
 
@@ -15,8 +15,14 @@ export default function CreateProposalPage() {
     votingPower,
     proposalThreshold,
     meetsThreshold,
+    delegateAddress,
+    setDelegateAddress,
+    delegateAddressError,
+    canDelegateVotes,
+    isDelegatingVotes,
+    delegateVotes,
+    canSubmitProposal,
     isSubmitting,
-    capabilities,
   } = useProposalComposerModel();
 
   return (
@@ -60,6 +66,11 @@ export default function CreateProposalPage() {
                   placeholder="Enter proposal title"
                   className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
                 />
+                {title.trim() !== "" && title.trim().length < 5 ? (
+                  <p className="mt-2 text-sm text-danger">
+                    Proposal title must have at least 5 characters.
+                  </p>
+                ) : null}
               </div>
 
               <div>
@@ -71,6 +82,11 @@ export default function CreateProposalPage() {
                   rows={7}
                   className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
                 />
+                {description.trim() !== "" && description.trim().length < 10 ? (
+                  <p className="mt-2 text-sm text-danger">
+                    Description must have at least 10 characters.
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -126,6 +142,12 @@ export default function CreateProposalPage() {
                         placeholder="0x..."
                         className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
                       />
+                      {action.target.trim() !== "" &&
+                      !/^0x[a-fA-F0-9]{40}$/.test(action.target.trim()) ? (
+                        <p className="mt-2 text-sm text-danger">
+                          Target must be a valid contract address.
+                        </p>
+                      ) : null}
                     </div>
 
                     <div>
@@ -141,6 +163,12 @@ export default function CreateProposalPage() {
                         placeholder="0"
                         className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
                       />
+                      {action.value.trim() !== "" &&
+                      !(Number.isFinite(Number(action.value)) && Number(action.value) >= 0) ? (
+                        <p className="mt-2 text-sm text-danger">
+                          Execution value must be numeric and 0 or greater.
+                        </p>
+                      ) : null}
                     </div>
 
                     <div>
@@ -156,6 +184,16 @@ export default function CreateProposalPage() {
                         rows={4}
                         className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
                       />
+                      {action.calldata.trim() !== "" &&
+                      !(
+                        action.calldata.trim().startsWith("0x") &&
+                        action.calldata.trim().length % 2 === 0 &&
+                        /^0x[0-9a-fA-F]*$/.test(action.calldata.trim())
+                      ) ? (
+                        <p className="mt-2 text-sm text-danger">
+                          Calldata must be valid hex bytes starting with 0x.
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -165,6 +203,41 @@ export default function CreateProposalPage() {
         </div>
 
         <div className="space-y-6">
+          <div className="card">
+            <div className="card-header">Delegate Voting Power</div>
+
+            <div className="card-content space-y-4">
+              <div>
+                <label className="text-sm text-text-secondary">
+                  Delegate Address
+                </label>
+                <input
+                  type="text"
+                  value={delegateAddress}
+                  onChange={(event) => setDelegateAddress(event.target.value)}
+                  placeholder="0x..."
+                  disabled={isDelegatingVotes}
+                  className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
+                />
+                {delegateAddressError ? (
+                  <p className="mt-2 text-sm text-danger">
+                    {delegateAddressError}
+                  </p>
+                ) : null}
+              </div>
+
+              <button
+                type="button"
+                className="btn-secondary inline-flex w-full items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!canDelegateVotes}
+                onClick={delegateVotes}
+              >
+                <Vote className="h-4 w-4" />
+                {isDelegatingVotes ? "Delegating..." : "Delegate Votes"}
+              </button>
+            </div>
+          </div>
+
           <div className="card">
             <div className="card-header">Submission Eligibility</div>
 
@@ -216,7 +289,7 @@ export default function CreateProposalPage() {
 
               <button
                 className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!capabilities.canCreateProposal || isSubmitting}
+                disabled={!canSubmitProposal}
               >
                 {isSubmitting ? "Submitting..." : "Submit Proposal"}
               </button>

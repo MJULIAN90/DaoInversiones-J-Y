@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { ProtectedRoute } from "./ProtectedRoute";
 
 // Pages
 import DashboardPage from "@/pages/dashboard";
@@ -30,12 +31,33 @@ export function AppRouter() {
         <Route path="/vaults" element={<VaultsPage />} />
         <Route path="/vaults/:vaultAddress" element={<VaultDetailPage />} />
         <Route path="/vaults/positions" element={<MyPositionsPage />} />
-        <Route path="/vaults/guardian-tools" element={<GuardianToolsPage />} />
+        <Route
+          path="/vaults/guardian-tools"
+          element={
+            <ProtectedRoute capability="canAccessGuardianOperations">
+              <GuardianToolsPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/treasury" element={<TreasuryPage />} />
-        <Route path="/treasury/operations" element={<TreasuryOperationsPage />} />
+        <Route
+          path="/treasury/operations"
+          element={
+            <ProtectedRoute capability="canOpenTreasuryOperations">
+              <TreasuryOperationsPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/operations" element={<OperationsPage />} />
         <Route path="/risk" element={<RiskPage />} />
-        <Route path="/admin" element={<AdminPage />} />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute capability="canAccessAdminConsole">
+              <AdminPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
     </Routes>
   );

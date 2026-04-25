@@ -1,17 +1,58 @@
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { ShieldCheck, Vault, WalletCards, Zap } from "lucide-react";
 import { useVaultDetailModel } from "@/hooks/useVaultDetailModel";
 import { HeroMetric, MetricCard } from "@/components/shared";
-import { SummaryStat, MetaRow, ActionField } from "../";
+import { SummaryStat, MetaRow, ActionField, CopyableAddressCard } from "../";
+import { formatAddress } from "@/utils";
 
 export default function VaultDetailPage() {
   const { vaultAddress } = useParams();
+  const [depositAmount, setDepositAmount] = useState("");
+  const [mintSharesAmount, setMintSharesAmount] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [redeemSharesAmount, setRedeemSharesAmount] = useState("");
   const { 
     vault,
     position,
     controls,
     capabilities 
   } = useVaultDetailModel(vaultAddress);
+
+  const depositsStatusLabel = controls.depositsEnabled ? "Enabled" : "Paused";
+  const strategyExecutionLabel = controls.strategyExecutionEnabled
+    ? "Enabled"
+    : "Restricted";
+  const depositControlsDescription = controls.depositsEnabled
+    ? "Deposits and minting are available while protocol and vault controls remain enabled."
+    : "Deposits and minting are currently blocked by protocol pause or inactive vault status.";
+  const strategyExecutionDescription = controls.strategyExecutionEnabled
+    ? "Execution is available at vault level while risk controls remain enabled."
+    : "Execution is blocked by risk controls or inactive vault status.";
+  const isPositiveNumber = (value: string) =>
+    value.trim() !== "" &&
+    Number.isFinite(Number(value)) &&
+    Number(value) > 0;
+  const canDeposit = controls.depositsEnabled && isPositiveNumber(depositAmount);
+  const canMint = controls.depositsEnabled && isPositiveNumber(mintSharesAmount);
+  const canWithdraw = isPositiveNumber(withdrawAmount);
+  const canRedeem = isPositiveNumber(redeemSharesAmount);
+  const depositAmountError =
+    depositAmount.trim() !== "" && !isPositiveNumber(depositAmount)
+      ? `Enter a valid ${vault.asset} amount greater than 0.`
+      : undefined;
+  const mintSharesAmountError =
+    mintSharesAmount.trim() !== "" && !isPositiveNumber(mintSharesAmount)
+      ? "Enter a valid share amount greater than 0."
+      : undefined;
+  const withdrawAmountError =
+    withdrawAmount.trim() !== "" && !isPositiveNumber(withdrawAmount)
+      ? `Enter a valid ${vault.asset} amount greater than 0.`
+      : undefined;
+  const redeemSharesAmountError =
+    redeemSharesAmount.trim() !== "" && !isPositiveNumber(redeemSharesAmount)
+      ? "Enter a valid share amount greater than 0."
+      : undefined;
 
   return (
     <div className="space-y-8">
@@ -30,9 +71,9 @@ export default function VaultDetailPage() {
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <HeroMetric label="Vault Address" value={vault.address} />
+          <CopyableAddressCard label="Vault Address" value={vault.address} />
           <HeroMetric label="Asset" value={vault.asset} />
-          <HeroMetric label="Guardian" value={vault.guardian} />
+          <CopyableAddressCard label="Guardian" value={vault.guardian} />
           <HeroMetric label="Status" value={vault.status} />
         </div>
       </section>
@@ -52,14 +93,14 @@ export default function VaultDetailPage() {
         />
         <MetricCard
           title="Deposits"
-          value={controls.depositsEnabled ? "Enabled" : "Paused"}
-          subtitle="Derived from vault and protocol controls"
+          value={depositsStatusLabel}
+          subtitle={depositControlsDescription}
           icon={<ShieldCheck className="h-5 w-5" />}
         />
         <MetricCard
           title="Strategy Execution"
-          value={controls.strategyExecutionEnabled ? "Enabled" : "Restricted"}
-          subtitle="Execution depends on risk and guardian capability layers"
+          value={strategyExecutionLabel}
+          subtitle={strategyExecutionDescription}
           icon={<Zap className="h-5 w-5" />}
         />
       </section>
@@ -89,9 +130,9 @@ export default function VaultDetailPage() {
           <div className="card-header">Vault Metadata</div>
 
           <div className="card-content space-y-4">
-            <MetaRow label="Vault Address" value={vault.address} />
+            <MetaRow label="Vault Address" value={formatAddress(vault.address)} />
             <MetaRow label="Underlying Asset" value={vault.asset} />
-            <MetaRow label="Guardian" value={vault.guardian} />
+            <MetaRow label="Guardian" value={formatAddress(vault.guardian)} />
             <MetaRow label="Registered At" value={vault.registeredAt} />
             <MetaRow label="Status" value={vault.status} />
             <MetaRow label="Decimals" value={String(vault.decimals)} />
@@ -107,18 +148,29 @@ export default function VaultDetailPage() {
             <ActionField
               label="Deposit Assets"
               placeholder={`Enter ${vault.asset} amount`}
+              value={depositAmount}
+              onChange={setDepositAmount}
+              error={depositAmountError}
+              inputMode="decimal"
             />
             <button
               className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={!controls.depositsEnabled}
+              disabled={!canDeposit}
             >
               Deposit Assets
             </button>
 
-            <ActionField label="Mint Shares" placeholder="Enter share amount" />
+            <ActionField
+              label="Mint Shares"
+              placeholder="Enter share amount"
+              value={mintSharesAmount}
+              onChange={setMintSharesAmount}
+              error={mintSharesAmountError}
+              inputMode="decimal"
+            />
             <button
               className="btn-secondary w-full disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={!controls.depositsEnabled}
+              disabled={!canMint}
             >
               Mint Shares
             </button>
@@ -136,14 +188,32 @@ export default function VaultDetailPage() {
             <ActionField
               label="Withdraw Assets"
               placeholder={`Enter ${vault.asset} amount`}
+              value={withdrawAmount}
+              onChange={setWithdrawAmount}
+              error={withdrawAmountError}
+              inputMode="decimal"
             />
-            <button className="btn-primary w-full">Withdraw Assets</button>
+            <button
+              className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!canWithdraw}
+            >
+              Withdraw Assets
+            </button>
 
             <ActionField
               label="Redeem Shares"
               placeholder="Enter share amount"
+              value={redeemSharesAmount}
+              onChange={setRedeemSharesAmount}
+              error={redeemSharesAmountError}
+              inputMode="decimal"
             />
-            <button className="btn-secondary w-full">Redeem Shares</button>
+            <button
+              className="btn-secondary w-full disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!canRedeem}
+            >
+              Redeem Shares
+            </button>
 
             {/* TODO: conectar withdraw(...) */}
             {/* TODO: conectar redeem(...) */}
@@ -165,20 +235,29 @@ export default function VaultDetailPage() {
               Strategy Execution
             </p>
             <p className="mt-1 text-sm leading-6 text-text-secondary">
-              Execution is available only when the guardian capability is active
-              and execution controls remain enabled.
+              {controls.strategyExecutionEnabled
+                ? "Execution is enabled at vault level, but still requires guardian capability from the connected wallet."
+                : "Execution is currently restricted by vault status or protocol risk controls."}
             </p>
           </div>
 
-          <button
-            className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={
-              !capabilities.canExecuteStrategy ||
-              !controls.strategyExecutionEnabled
-            }
-          >
-            Execute Strategy
-          </button>
+          {capabilities.canAccessGuardianOperations ? (
+            <button
+              className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!capabilities.canExecuteStrategy || !controls.strategyExecutionEnabled}
+            >
+              Execute Strategy
+            </button>
+          ) : (
+            <div className="rounded-2xl border border-yellow-200 bg-yellow-50 px-4 py-4">
+              <p className="text-sm font-medium text-yellow-800">
+                Guardian Action Hidden
+              </p>
+              <p className="mt-1 text-sm leading-6 text-yellow-700">
+                Strategy execution controls are only shown to wallets with guardian access.
+              </p>
+            </div>
+          )}
 
           {/* TODO: conectar executeStrategy(...) */}
         </div>

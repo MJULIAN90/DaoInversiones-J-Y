@@ -1,8 +1,14 @@
 import { ArrowRight, Clock3, Landmark, Vote } from "lucide-react";
 import { useGovernanceModel } from "@/hooks/useGovernanceModel";
 import { Link } from "react-router-dom";
-import { HeroMetric, MetricCard } from "@/components/shared";
+import {
+  CopyValueButton,
+  EmptyState,
+  HeroMetric,
+  MetricCard,
+} from "@/components/shared";
 import { ProposalStatus, LifecycleStep } from "./components";
+import { truncateMiddle } from "@/utils";
 
 export default function GovernancePage() {
   const { config, metrics, proposals, user, capabilities } =
@@ -24,18 +30,17 @@ export default function GovernancePage() {
           timelocked execution.
         </p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <HeroMetric
             label="Proposal Threshold"
             value={config.proposalThreshold}
           />
           <HeroMetric label="Voting Delay" value={config.votingDelay} />
           <HeroMetric label="Voting Period" value={config.votingPeriod} />
-          <HeroMetric label="Execution Delay" value={config.executionDelay} />
         </div>
       </section>
 
-      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid items-stretch gap-5 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Active Proposals"
           value={String(metrics.activeProposals)}
@@ -57,24 +62,21 @@ export default function GovernancePage() {
         <MetricCard
           title="Governance Participation"
           value={metrics.participation}
-          subtitle="Illustrative participation baseline"
+          subtitle="Derived from the latest on-chain proposal window"
           icon={<Vote className="h-5 w-5" />}
         />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.15fr,0.85fr]">
-        <div className="card">
+      <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+        <div className="card h-full">
           <div className="card-header">Proposal List</div>
 
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse">
               <thead>
                 <tr className="border-b border-border bg-gray-50 text-left">
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  <th className="w-[220px] px-6 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                     Proposal ID
-                  </th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                    Title
                   </th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                     Status
@@ -83,7 +85,7 @@ export default function GovernancePage() {
                     Votes
                   </th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                    End Time
+                    Deadline
                   </th>
                   <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                     Action
@@ -92,50 +94,54 @@ export default function GovernancePage() {
               </thead>
 
               <tbody>
-                {proposals.map((proposal) => (
-                  <tr key={proposal.id} className="border-b border-border">
-                    <td className="px-6 py-4 text-sm font-medium text-text-primary">
-                      {proposal.id}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-text-primary">
-                      {proposal.title}
-                    </td>
-                    <td className="px-6 py-4">
-                      <ProposalStatus status={proposal.status} />
-                    </td>
-                    <td className="px-6 py-4 text-sm text-text-secondary">
-                      {proposal.votes}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-text-secondary">
-                      {proposal.endDate}
-                    </td>
-                    <td className="px-6 py-4">
-                      <Link
-                        to={`/governance/${proposal.id}`}
-                        className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                      >
-                        View Details
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                      {/* TODO: navegar a /governance/proposals/:proposalId */}
+                {proposals.length > 0 ? (
+                  proposals.map((proposal) => (
+                    <tr key={proposal.id} className="border-b border-border">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="min-w-0 text-sm font-medium text-text-primary">
+                            {truncateMiddle(proposal.id)}
+                          </span>
+                          <CopyValueButton value={proposal.id} label="Copy" />
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <ProposalStatus status={proposal.status} />
+                      </td>
+                      <td className="px-6 py-4 text-sm text-text-secondary">
+                        {proposal.votes}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-text-secondary">
+                        {proposal.endDate}
+                      </td>
+                      <td className="px-6 py-4">
+                        <Link
+                          to={`/governance/${proposal.id}`}
+                          className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                        >
+                          View Details
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-10">
+                      <EmptyState
+                        title="No proposals available"
+                        description="The governor has not exposed any proposal windows for this network yet."
+                      />
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
-
-          {proposals.length === 0 && (
-            <div className="card-content">
-              <p className="text-sm text-text-secondary">
-                No proposals available.
-              </p>
-            </div>
-          )}
         </div>
 
-        <div className="space-y-6">
-          <div className="card">
+        <div className="grid gap-6 self-start">
+          <div className="card h-full">
             <div className="card-header">Proposal Lifecycle</div>
 
             <div className="card-content space-y-4">
@@ -162,7 +168,7 @@ export default function GovernancePage() {
             </div>
           </div>
 
-          <div className="card">
+          <div className="card h-full">
             <div className="card-header">Create Proposal</div>
 
             <div className="card-content space-y-4">
@@ -170,6 +176,17 @@ export default function GovernancePage() {
                 Submit protocol changes through governed proposals once the
                 minimum voting threshold is met.
               </p>
+
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4">
+                <p className="text-sm font-medium text-blue-900">
+                  On-chain Listing Note
+                </p>
+                <p className="mt-1 text-sm leading-6 text-blue-800">
+                  Proposal titles are not stored directly onchain by the current
+                  governor storage view, so the list uses proposal IDs as labels
+                  and estimates deadline dates from block numbers.
+                </p>
+              </div>
 
               <div className="rounded-2xl border border-border bg-gray-50 px-4 py-4">
                 <p className="text-sm text-text-secondary">
@@ -189,16 +206,13 @@ export default function GovernancePage() {
                 to="/governance/create"
                 className={[
                   "block w-full rounded-lg px-4 py-2 text-center text-sm font-medium transition",
-                  capabilities.canCreateProposal
+                  capabilities.canOpenProposalComposer
                     ? "bg-primary text-white hover:bg-primary-hover"
                     : "cursor-not-allowed bg-primary/50 text-white pointer-events-none opacity-50",
                 ].join(" ")}
               >
                 Open Proposal Composer
               </Link>
-
-              {/* TODO: navegar a /governance/create */}
-              {/* TODO: conectar propose(...) desde la vista composer */}
             </div>
           </div>
         </div>

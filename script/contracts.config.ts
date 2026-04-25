@@ -35,4 +35,24 @@ export const EXPORTED_CONTRACTS: ExportedContract[] = [
     contractName: "StrategyRouter",
     artifactPath: "out/StrategyRouter.sol/StrategyRouter.json",
   },
+  {
+    key: "riskManager",
+    contractName: "RiskManager",
+    artifactPath: "out/RiskManager.sol/RiskManager.json",
+  },
+  {
+    key: "daoGovernor",
+    contractName: "DaoGovernor",
+    artifactPath: "out/DaoGovernor.sol/DaoGovernor.json",
+  },
+  {
+    key: "guardianAdministrator",
+    contractName: "GuardianAdministrator",
+    artifactPath: "out/GuardianAdministrator.sol/GuardianAdministrator.json",
+  },
+  {
+    key: "guardianBondEscrow",
+    contractName: "GuardianBondEscrow",
+    artifactPath: "out/GuardianBondEscrow.sol/GuardianBondEscrow.json",
+  }
 ]

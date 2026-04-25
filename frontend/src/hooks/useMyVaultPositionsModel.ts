@@ -1,19 +1,8 @@
+import type {
+  MyVaultPositionsModel,
+  VaultPositionItem,
+} from "@/types/models/myVaultPositions";
 import { useProtocolCapabilities } from "./useProtocolCapabilities";
-
-export type VaultPositionItem = {
-  vaultAddress: string;
-  asset: string;
-  deposited: string;
-  shares: string;
-  value: string;
-};
-
-export type MyVaultPositionsModel = {
-  positions: VaultPositionItem[];
-  totalDepositedValue: string;
-  totalShareExposure: string;
-  capabilities: ReturnType<typeof useProtocolCapabilities>;
-};
 
 export function useMyVaultPositionsModel(): MyVaultPositionsModel {
   const capabilities = useProtocolCapabilities();

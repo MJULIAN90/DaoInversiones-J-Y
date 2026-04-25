@@ -7,18 +7,62 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useVaultsModel } from "@/hooks/useVaultsModel";
-import { HeroMetric, MetricCard } from "@/components/shared";
+import { EmptyState, HeroMetric, MetricCard } from "@/components/shared";
 import { VaultStatus, SummaryRow } from "./components";
 
 export default function VaultsPage() {
   const {
     filteredVaults,
+    availableAssets,
+    availableGuardians,
+    filters,
+    isVaultDepositsPaused,
     metrics,
+    guardianRoutingStatus,
+    guardianRoutingSubtitle,
+    registryVisibilityStatus,
+    registryVisibilitySubtitle,
+    vaultExplorerStatus,
+    vaultExplorerSubtitle,
     setAssetFilter,
     setGuardianFilter,
     setStatusFilter,
     capabilities,
   } = useVaultsModel();
+
+  const depositAccessValue = isVaultDepositsPaused ? "Paused" : "Enabled";
+  const depositSummaryStatus = isVaultDepositsPaused ? "Paused" : "Available";
+  const depositSummaryTone = isVaultDepositsPaused ? "warning" : "success";
+  const depositAccessSubtitle = isVaultDepositsPaused
+    ? "Vault deposits are currently paused at protocol level."
+    : "Vault deposits are enabled, subject to each vault's own state.";
+  const depositAssetsDescription = isVaultDepositsPaused
+    ? "Deposits are paused by ProtocolCore, so users cannot deposit supported assets right now."
+    : "Users may deposit supported assets into active vaults while protocol deposits remain enabled.";
+  const mintSharesDescription = isVaultDepositsPaused
+    ? "Minting shares is paused because ProtocolCore has vault deposits disabled."
+    : "Vault shares may be minted according to ERC4626 behavior while protocol deposits remain enabled.";
+  const withdrawAssetsStatus = metrics.totalVaults > 0 ? "Available" : "No Vaults";
+  const withdrawAssetsTone =
+    metrics.totalVaults > 0 ? "success" : ("neutral" as const);
+  const withdrawAssetsDescription = metrics.totalVaults > 0
+    ? "Withdrawals are available in active vaults and remain subject to vault and ownership constraints."
+    : "No registered vaults are available yet, so withdrawals cannot be exercised from this module.";
+  const redeemSharesStatus = metrics.totalVaults > 0 ? "Available" : "No Vaults";
+  const redeemSharesTone =
+    metrics.totalVaults > 0 ? "success" : ("neutral" as const);
+  const redeemSharesDescription = metrics.totalVaults > 0
+    ? "Users may redeem shares for the underlying asset when vault rules allow it."
+    : "No registered vaults are available yet, so redemptions cannot be exercised from this module.";
+  const guardianExecutionStatus = capabilities.canExecuteStrategy
+    ? "Available"
+    : "Restricted";
+  const guardianExecutionTone = capabilities.canExecuteStrategy
+    ? "success"
+    : "warning";
+  const guardianExecutionDescription = capabilities.canExecuteStrategy
+    ? "Guardian-linked vaults may execute strategies through the router when the connected wallet has guardian access."
+    : "Strategy execution is restricted to guardian wallets with the proper on-chain role.";
 
   return (
     <div className="space-y-8">
@@ -37,7 +81,7 @@ export default function VaultsPage() {
           supported assets and protocol-level execution controls.
         </p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <HeroMetric
             label="Total Vaults"
             value={String(metrics.totalVaults)}
@@ -45,10 +89,6 @@ export default function VaultsPage() {
           <HeroMetric
             label="Active Vaults"
             value={String(metrics.activeVaults)}
-          />
-          <HeroMetric
-            label="Assets Covered"
-            value={String(metrics.assetsCovered)}
           />
           <HeroMetric
             label="Guardian Coverage"
@@ -60,26 +100,26 @@ export default function VaultsPage() {
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Vault Explorer"
-          value="Live"
-          subtitle="Registered protocol vaults are visible from this module."
+          value={vaultExplorerStatus}
+          subtitle={vaultExplorerSubtitle}
           icon={<Vault className="h-5 w-5" />}
         />
         <MetricCard
           title="Deposit Access"
-          value="Enabled"
-          subtitle="Vault deposits depend on protocol-level and vault-level state."
+          value={depositAccessValue}
+          subtitle={depositAccessSubtitle}
           icon={<WalletCards className="h-5 w-5" />}
         />
         <MetricCard
           title="Guardian Routing"
-          value="Linked"
-          subtitle="Guardian-linked deployment and operation model."
+          value={guardianRoutingStatus}
+          subtitle={guardianRoutingSubtitle}
           icon={<ShieldCheck className="h-5 w-5" />}
         />
         <MetricCard
           title="Registry Visibility"
-          value="Tracked"
-          subtitle="Vault identity, asset and guardian relationships are available."
+          value={registryVisibilityStatus}
+          subtitle={registryVisibilitySubtitle}
           icon={<Vault className="h-5 w-5" />}
         />
       </section>
@@ -87,17 +127,20 @@ export default function VaultsPage() {
       <section className="card">
         <div className="card-header">Vault Filters</div>
 
-        <div className="card-content grid gap-4 lg:grid-cols-4">
+        <div className="card-content grid gap-4 lg:grid-cols-3">
           <div>
             <label className="text-sm text-text-secondary">Asset</label>
             <select
+              value={filters.asset}
               onChange={(e) => setAssetFilter(e.target.value)}
               className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
             >
-              <option>All Assets</option>
-              <option>USDC</option>
-              <option>DAI</option>
-              <option>ETH</option>
+              <option value="All Assets">All Assets</option>
+              {availableAssets.map((asset) => (
+                <option key={asset} value={asset}>
+                  {asset}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -105,33 +148,32 @@ export default function VaultsPage() {
             <label className="text-sm text-text-secondary">Guardian</label>
             <input
               type="text"
+              list="vault-guardian-options"
+              value={filters.guardian}
               placeholder="Search guardian address"
               onChange={(e) => setGuardianFilter(e.target.value)}
               className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
             />
+            <datalist id="vault-guardian-options">
+              {availableGuardians.map((guardian) => (
+                <option key={guardian} value={guardian} />
+              ))}
+            </datalist>
           </div>
 
           <div>
             <label className="text-sm text-text-secondary">Status</label>
             <select
+              value={filters.status}
               onChange={(e) =>
                 setStatusFilter(e.target.value as "All" | "Active" | "Inactive")
               }
               className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
             >
-              <option>All</option>
-              <option>Active</option>
-              <option>Inactive</option>
+              <option value="All">All</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
             </select>
-          </div>
-
-          <div className="flex items-end">
-            <button className="btn-secondary w-full">
-              <span className="inline-flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                Apply Filters
-              </span>
-            </button>
           </div>
         </div>
       </section>
@@ -165,44 +207,49 @@ export default function VaultsPage() {
             </thead>
 
             <tbody>
-              {filteredVaults.map((vault) => (
-                <tr key={vault.address} className="border-b border-border">
-                  <td className="px-6 py-4 text-sm font-medium text-text-primary">
-                    {vault.address}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-text-primary">
-                    {vault.asset}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-text-secondary">
-                    {vault.guardian}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-text-secondary">
-                    {vault.registeredAt}
-                  </td>
-                  <td className="px-6 py-4">
-                    <VaultStatus status={vault.status} />
-                  </td>
-                  <td className="px-6 py-4">
-                    <Link
-                      to={`/vaults/${vault.address}`}
-                      className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                    >
-                      View Details
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                    {/* TODO: navegar a /vaults/:vaultAddress */}
+              {filteredVaults.length > 0 ? (
+                filteredVaults.map((vault) => (
+                  <tr key={vault.fullAddress} className="border-b border-border">
+                    <td className="px-6 py-4 text-sm font-medium text-text-primary">
+                      {vault.address}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-text-primary">
+                      {vault.asset}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-text-secondary">
+                      {vault.guardian}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-text-secondary">
+                      {vault.registeredAt}
+                    </td>
+                    <td className="px-6 py-4">
+                      <VaultStatus status={vault.status} />
+                    </td>
+                    <td className="px-6 py-4">
+                      <Link
+                        to={`/vaults/${vault.fullAddress}`}
+                        className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                      >
+                        View Details
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                      {/* TODO: navegar a /vaults/:vaultAddress */}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10">
+                    <EmptyState
+                      title="No registered vaults available"
+                      description="There are no vaults matching the current filters for this network."
+                    />
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
-
-        {/* TODO:
-          - usar getAllVaults() desde VaultRegistry
-          - enriquecer filas con getVaultDetail(vault)
-          - resolver status real con isActiveVault(vault)
-        */}
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
@@ -212,33 +259,33 @@ export default function VaultsPage() {
           <div className="card-content space-y-4">
             <SummaryRow
               title="Deposit Assets"
-              description="Users may deposit supported assets into active vaults."
-              status="Available"
-              tone="success"
+              description={depositAssetsDescription}
+              status={depositSummaryStatus}
+              tone={depositSummaryTone}
             />
             <SummaryRow
               title="Mint Shares"
-              description="Vault shares may be minted according to ERC4626 behavior."
-              status="Available"
-              tone="success"
+              description={mintSharesDescription}
+              status={depositSummaryStatus}
+              tone={depositSummaryTone}
             />
             <SummaryRow
               title="Withdraw Assets"
-              description="Withdrawals remain subject to vault and ownership constraints."
-              status="Available"
-              tone="success"
+              description={withdrawAssetsDescription}
+              status={withdrawAssetsStatus}
+              tone={withdrawAssetsTone}
             />
             <SummaryRow
               title="Redeem Shares"
-              description="Users may redeem shares for underlying assets."
-              status="Available"
-              tone="success"
+              description={redeemSharesDescription}
+              status={redeemSharesStatus}
+              tone={redeemSharesTone}
             />
             <SummaryRow
               title="Guardian Execution"
-              description="Guardian operations require an active guardian-linked vault."
-              status="Restricted"
-              tone="warning"
+              description={guardianExecutionDescription}
+              status={guardianExecutionStatus}
+              tone={guardianExecutionTone}
             />
           </div>
         </div>
@@ -272,24 +319,35 @@ export default function VaultsPage() {
               </p>
             </div>
 
-            <Link
-              to="/vaults/guardian-tools"
-              className={[
-                "block w-full rounded-lg px-4 py-2 text-center text-sm font-medium transition",
-                capabilities.canCreateVault
-                  ? "bg-primary text-white hover:bg-primary-hover"
-                  : "pointer-events-none cursor-not-allowed bg-primary/50 text-white opacity-50",
-              ].join(" ")}
-            >
-              Open Guardian Vault Tools
-            </Link>
+            {true ? (
+              <Link
+                to="/vaults/guardian-tools"
+                className={[
+                  "block w-full rounded-lg px-4 py-2 text-center text-sm font-medium transition",
+                  capabilities.canCreateVault
+                    ? "bg-primary text-white hover:bg-primary-hover"
+                    : "cursor-not-allowed bg-primary/50 text-white opacity-50",
+                ].join(" ")}
+              >
+                Open Guardian Vault Tools
+              </Link>
+            ) : (
+              <div className="rounded-2xl border border-yellow-200 bg-yellow-50 px-4 py-4">
+                <p className="text-sm font-medium text-yellow-800">
+                  Guardian Tools Hidden
+                </p>
+                <p className="mt-1 text-sm leading-6 text-yellow-700">
+                  Guardian vault tooling is only available to wallets with active
+                  guardian access.
+                </p>
+              </div>
+            )}
             <Link
               to="/vaults/positions"
               className="block w-full rounded-lg border border-border px-4 py-2 text-center text-sm font-medium text-text-primary transition hover:bg-gray-50"
             >
               View My Positions
             </Link>
-            {/* TODO: llevar a /vaults/guardian-tools */}
           </div>
         </div>
       </section>

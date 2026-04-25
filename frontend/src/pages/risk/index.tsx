@@ -1,20 +1,19 @@
 import {
   AlertTriangle,
+  Database,
   PauseCircle,
   PlayCircle,
   ShieldCheck,
   Waves,
 } from "lucide-react";
 import { useRiskModel } from "@/hooks/useRiskModel";
-import { HeroMetric, MetricCard } from "@/components/shared";
+import { EmptyState, HeroMetric, MetricCard, NoteRow } from "@/components/shared";
 import { HealthBadge, ConfigField } from "./components";
-
-function formatExecutionStatus(value: "monitoring" | "paused") {
-  return value === "monitoring" ? "Monitoring" : "Paused";
-}
+import { formatExecutionStatus } from "./formatters";
 
 export default function RiskPage() {
-  const { metrics, assets, capabilities } = useRiskModel();
+  const { metrics, assets, form, actions, summary, capabilities } =
+    useRiskModel();
 
   return (
     <div className="space-y-8">
@@ -56,25 +55,25 @@ export default function RiskPage() {
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Execution Engine"
-          value="Observed"
+          value={summary.executionEngineValue}
           subtitle="Execution state is monitored before strategy routing."
           icon={<ShieldCheck className="h-5 w-5" />}
         />
         <MetricCard
           title="Asset Validation"
-          value="Enabled"
+          value={summary.assetValidationValue}
           subtitle="Configured assets are checked against feed and health rules."
           icon={<Waves className="h-5 w-5" />}
         />
         <MetricCard
           title="Emergency Controls"
-          value="Restricted"
+          value={summary.emergencyControlsValue}
           subtitle="Pause and resume actions are limited to operational capabilities."
           icon={<PauseCircle className="h-5 w-5" />}
         />
         <MetricCard
           title="Price Monitoring"
-          value="Live"
+          value={summary.priceMonitoringValue}
           subtitle="Validated price checks support execution gating."
           icon={<AlertTriangle className="h-5 w-5" />}
         />
@@ -94,13 +93,19 @@ export default function RiskPage() {
                 protocol when risk conditions require immediate intervention.
               </p>
 
-              <button
-                className="btn-primary mt-4 inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!capabilities.canPauseRiskExecution}
-              >
-                <PauseCircle className="h-4 w-4" />
-                Pause Execution
-              </button>
+              {capabilities.canPauseRiskExecution ? (
+                <button
+                  className="btn-primary mt-4 inline-flex items-center gap-2"
+                  onClick={actions.pauseExecution}
+                >
+                  <PauseCircle className="h-4 w-4" />
+                  Pause Execution
+                </button>
+              ) : (
+                <p className="mt-4 text-sm text-text-secondary">
+                  Pause action hidden because the connected wallet is not an emergency operator.
+                </p>
+              )}
             </div>
 
             <div className="rounded-2xl border border-border px-4 py-4">
@@ -112,13 +117,19 @@ export default function RiskPage() {
                 reviewed and cleared.
               </p>
 
-              <button
-                className="btn-secondary mt-4 inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!capabilities.canResumeRiskExecution}
-              >
-                <PlayCircle className="h-4 w-4" />
-                Resume Execution
-              </button>
+              {capabilities.canResumeRiskExecution ? (
+                <button
+                  className="btn-secondary mt-4 inline-flex items-center gap-2"
+                  onClick={actions.resumeExecution}
+                >
+                  <PlayCircle className="h-4 w-4" />
+                  Resume Execution
+                </button>
+              ) : (
+                <p className="mt-4 text-sm text-text-secondary">
+                  Resume action hidden because the connected wallet is not a manager operator.
+                </p>
+              )}
             </div>
 
             <div className="rounded-2xl border border-border bg-yellow-50 px-4 py-4">
@@ -130,14 +141,19 @@ export default function RiskPage() {
                 emergency and manager capability layers.
               </p>
             </div>
-
-            {/* TODO: conectar pauseAdapterExecution() */}
-            {/* TODO: conectar unpauseAdapterExecution() */}
           </div>
         </div>
 
         <div className="card">
           <div className="card-header">Asset Health</div>
+
+          <div className="space-y-4 p-6">
+            <NoteRow
+              icon={<Database className="h-4 w-4" />}
+              title="Data Source"
+              description={`This table shows ${metrics.configuredAssets} configured assets from ${metrics.knownAssets} locally known protocol assets. An asset only appears here when the frontend knows it for this network and RiskManager returns a non-zero feed configuration.`}
+            />
+          </div>
 
           <div className="overflow-x-auto">
             <table className="min-w-full border-collapse">
@@ -168,42 +184,45 @@ export default function RiskPage() {
               </thead>
 
               <tbody>
-                {assets.map((asset) => (
-                  <tr key={asset.asset} className="border-b border-border">
-                    <td className="px-6 py-4 text-sm font-medium text-text-primary">
-                      {asset.asset}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-text-secondary">
-                      {asset.feed}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-text-secondary">
-                      {asset.heartbeat}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-text-secondary">
-                      {asset.stable}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-text-secondary">
-                      {asset.range}
-                    </td>
-                    <td className="px-6 py-4">
-                      <HealthBadge value={asset.health} />
-                    </td>
-                    <td className="px-6 py-4 text-sm text-text-secondary">
-                      {asset.price}
+                {assets.length > 0 ? (
+                  assets.map((asset) => (
+                    <tr key={asset.asset} className="border-b border-border">
+                      <td className="px-6 py-4 text-sm font-medium text-text-primary">
+                        {asset.asset}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-text-secondary">
+                        {asset.feed}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-text-secondary">
+                        {asset.heartbeat}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-text-secondary">
+                        {asset.stable}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-text-secondary">
+                        {asset.range}
+                      </td>
+                      <td className="px-6 py-4">
+                        <HealthBadge value={asset.health} />
+                      </td>
+                      <td className="px-6 py-4 text-sm text-text-secondary">
+                        {asset.price}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-10">
+                      <EmptyState
+                        title="No configured assets available"
+                        description="RiskManager does not currently expose any configured assets for the known protocol catalog on this network."
+                      />
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
-
-          {assets.length === 0 && (
-            <div className="card-content">
-              <p className="text-sm text-text-secondary">
-                No configured assets available.
-              </p>
-            </div>
-          )}
         </div>
       </section>
 
@@ -211,21 +230,72 @@ export default function RiskPage() {
         <div className="card-header">Asset Configuration</div>
 
         <div className="card-content grid gap-5 lg:grid-cols-2">
-          <ConfigField label="Asset Address" placeholder="0x..." />
-          <ConfigField label="Price Feed" placeholder="Chainlink feed address" />
-          <ConfigField label="Heartbeat" placeholder="e.g. 3600" />
-          <ConfigField label="Stable Asset" placeholder="true / false" />
-          <ConfigField label="Depeg Min BPS" placeholder="e.g. 9800" />
-          <ConfigField label="Depeg Max BPS" placeholder="e.g. 10200" />
+          <ConfigField
+            label="Asset Address"
+            placeholder="0x..."
+            value={form.assetAddress}
+            onChange={form.setAssetAddress}
+            error={form.assetAddressError}
+          />
+          <ConfigField
+            label="Price Feed"
+            placeholder="Chainlink feed address"
+            value={form.priceFeed}
+            onChange={form.setPriceFeed}
+            error={form.priceFeedError}
+          />
+          <ConfigField
+            label="Heartbeat"
+            placeholder="e.g. 3600"
+            value={form.heartbeat}
+            onChange={form.setHeartbeat}
+            error={form.heartbeatError}
+            inputMode="numeric"
+          />
+          <ConfigField
+            label="Stable Asset"
+            placeholder="true / false"
+            value={form.stableAsset}
+            onChange={form.setStableAsset}
+            error={form.stableAssetError}
+          />
+          <ConfigField
+            label="Depeg Min BPS"
+            placeholder="e.g. 9800"
+            value={form.depegMinBps}
+            onChange={form.setDepegMinBps}
+            error={form.depegMinBpsError}
+            inputMode="numeric"
+          />
+          <ConfigField
+            label="Depeg Max BPS"
+            placeholder="e.g. 10200"
+            value={form.depegMaxBps}
+            onChange={form.setDepegMaxBps}
+            error={form.depegMaxBpsError}
+            inputMode="numeric"
+          />
 
           <div className="lg:col-span-2">
-            <button className="btn-primary disabled:cursor-not-allowed disabled:opacity-50">
-              Update Asset Configuration
-            </button>
+            {capabilities.canResumeRiskExecution ? (
+              <button
+                className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!form.canUpdateAssetConfiguration}
+                onClick={actions.updateAssetConfiguration}
+              >
+                Update Asset Configuration
+              </button>
+            ) : (
+              <div className="rounded-2xl border border-yellow-200 bg-yellow-50 px-4 py-4">
+                <p className="text-sm font-medium text-yellow-800">
+                  Configuration Locked
+                </p>
+                <p className="mt-1 text-sm leading-6 text-yellow-700">
+                  {form.assetConfigurationLockedMessage}
+                </p>
+              </div>
+            )}
           </div>
-
-          {/* TODO: conectar setAssetConfig(...) */}
-          {/* TODO: modelar enabled como toggle visual */}
         </div>
       </section>
     </div>

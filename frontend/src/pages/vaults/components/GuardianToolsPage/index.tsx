@@ -13,8 +13,12 @@ export default function GuardianToolsPage() {
     setVaultSymbol,
     predictedAddress,
     pairExists,
+    isVaultNameValid,
+    isVaultSymbolValid,
     canCreateVault,
+    isSubmitting,
     capabilities,
+    createVault,
   } = useGuardianVaultToolsModel();
 
   return (
@@ -86,6 +90,11 @@ export default function GuardianToolsPage() {
                 placeholder="Enter vault name"
                 className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
               />
+              {!isVaultNameValid ? (
+                <p className="mt-2 text-sm text-danger">
+                  Vault name must have at least 3 characters.
+                </p>
+              ) : null}
             </div>
 
             <div>
@@ -97,17 +106,20 @@ export default function GuardianToolsPage() {
                 placeholder="Enter vault symbol"
                 className="mt-2 w-full rounded-xl border border-border px-4 py-3 text-sm"
               />
+              {!isVaultSymbolValid ? (
+                <p className="mt-2 text-sm text-danger">
+                  Vault symbol must be between 2 and 12 characters.
+                </p>
+              ) : null}
             </div>
 
             <button
               className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
               disabled={!canCreateVault}
+              onClick={createVault}
             >
-              Create Vault
+              {isSubmitting ? "Creating Vault..." : "Create Vault"}
             </button>
-
-            {/* TODO: conectar VaultFactory.createVault(asset, name, symbol) */}
-            {/* TODO: mostrar tx pending / success / error */}
           </div>
         </div>
 
